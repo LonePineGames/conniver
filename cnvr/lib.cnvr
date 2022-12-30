@@ -1,0 +1,11 @@
+
+(define (zero? x) (= 0 x))
+(define (odd? x) (= (% x 2) 1))
+(define (even? x) (= (% x 2) 0))
+
+(define print (lambda x (event 'print (apply format x))))
+(print "Hello library")
+
+(define loop (lambda x 
+  (apply do x)
+  (apply loop x)))
