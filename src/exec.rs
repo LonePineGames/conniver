@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{val::{Val, p}, builtins::get_builtins, screen::{ScreenLine, ScreenColor}};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Stackframe {
   variables: HashMap<String, Val>,
   pub init: Vec<Val>,
@@ -20,6 +20,7 @@ impl Stackframe {
   }
 }
 
+#[derive(Clone)]
 pub struct State {
   pub variables: HashMap<String, Val>,
   stack: Vec<Stackframe>,
