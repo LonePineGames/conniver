@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{val::{Val, p}, builtins::get_builtins, screen::{ScreenLine, ScreenColor}};
+use crate::{val::{Val, p, p_all}, builtins::get_builtins, screen::{ScreenLine, ScreenColor}};
 
 #[derive(Clone, Debug)]
 pub struct Stackframe {
@@ -41,7 +41,10 @@ impl State {
   pub fn load_lib(&mut self) {
     println!("Loading library...");
     eval_s(&p("(load \"cnvr/lib.cnvr\")"), self);
-    self.process_events();
+    let lib = include_bytes!("../cnvr/lib.cnvr");
+    let val = p_all(&String::from_utf8_lossy(lib));
+    self.add_stackframe(val);
+    self.run();
   }
 
   pub fn get_var(&self, name: &String) -> Option<&Val> {
