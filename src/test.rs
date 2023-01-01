@@ -179,7 +179,7 @@ pub fn test_debug() {
   s.load_lib();
 
   eval_s(&p("(load \"cnvr/velocity.cnvr\")"), s);
-  s.process_events();
+  assert_eq!(s.take_event(), None);
   s.set_program(p("(loop (goto 20 20) (pick ingot autoprocessor) (goto 20 30) (place pad))"));
   s.run();
   assert_eq!(s.take_event(), Some(p("(goto 20 20)")));

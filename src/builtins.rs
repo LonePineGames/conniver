@@ -103,11 +103,11 @@ fn define_cb(args: Vec<Val>, state: &mut State) {
     Val::List(calllist) => {
       // lambda
       if calllist.is_empty() {
-        val = Val::List(vec![
-          Val::Sym("lambda".to_string()),
-          Val::List(vec![]),
-          val.clone(),
-        ]);
+        // val = Val::List(vec![
+        //   Val::Sym("lambda".to_string()),
+        //   Val::List(vec![]),
+        //   val.clone(),
+        // ]);
       } else {
         val = Val::List(vec![
           Val::Sym("lambda".to_string()),
@@ -127,7 +127,7 @@ fn define_cb(args: Vec<Val>, state: &mut State) {
     },
   }
 
-  state.return_stackframe(val);
+  state.return_stackframe(Val::nil());
 }
 
 fn load_cb(args: Vec<Val>, state: &mut State) {
