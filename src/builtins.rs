@@ -1,7 +1,7 @@
 
 use std::collections::HashMap;
 
-use crate::{val::{Val, p_all}, exec::State};
+use crate::{val::{Val, p_all}, exec::{State, Stackframe}};
 
 pub type Callback = fn(args: Vec<Val>, &mut State);
 
@@ -36,6 +36,7 @@ pub fn get_builtins() -> HashMap<String, Val> {
   builtins.insert("event".to_string(), Val::Builtin(false, event_cb));
   builtins.insert("apply".to_string(), Val::Builtin(false, apply_cb));
   builtins.insert("format".to_string(), Val::Builtin(false, format_cb));
+  builtins.insert("set-program".to_string(), Val::Builtin(false, set_program_cb));
 
   builtins
 }
@@ -615,4 +616,14 @@ fn format_cb(args: Vec<Val>, state: &mut State) {
     }
   }
   state.return_stackframe(Val::Sym(string));
+}
+
+fn set_program_cb(args: Vec<Val>, state: &mut State) {
+  if args.is_empty() {
+    state.return_stackframe(Val::nil());
+    return;
+  }
+
+  state.set_main_program(args[0].clone());
+  state.return_stackframe(Val::nil());
 }

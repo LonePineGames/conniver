@@ -196,3 +196,21 @@ pub fn test_debug() {
   assert_eq!(debug[4], ScreenLine { indent: "  ".to_string(), text: "(place pad)".to_string(), 
       color: ScreenColor::White, order: 4, importance: 16 });
 }
+ 
+#[test]
+fn test_interrupt() {
+  let mut state = State::new();
+  let s = &mut state;
+  s.load_lib();
+
+  eval_s(&p("(load \"cnvr/velocity.cnvr\")"), s);
+  assert_eq!(s.take_event(), None);
+  s.set_program(p("(loop (goto 20 20) (pick ingot autoprocessor) (goto 20 30) (place pad))"));
+  s.run();
+  assert_eq!(s.take_event(), Some(p("(goto 20 20)")));
+
+  s.interrupt(p("(input-key a)"));
+  assert_eq!(s.take_event(), None);
+  s.run();
+  assert_eq!(s.take_event(), Some(p("(move w)")));
+}

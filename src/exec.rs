@@ -4,7 +4,7 @@ use crate::{val::{Val, p, p_all}, builtins::get_builtins, screen::{ScreenLine, S
 
 #[derive(Clone, Debug)]
 pub struct Stackframe {
-  variables: HashMap<String, Val>,
+  pub variables: HashMap<String, Val>,
   pub init: Vec<Val>,
   pub accum: Vec<Val>,
   pub pc: usize,
@@ -24,6 +24,7 @@ impl Stackframe {
 pub struct State {
   pub variables: HashMap<String, Val>,
   stack: Vec<Stackframe>,
+  pub back_stack: Vec<Vec<Stackframe>>,
   pub result: Val,
   events: Vec<Val>,
 }
@@ -32,8 +33,9 @@ impl State {
   pub fn new() -> State {
     State { 
       variables: get_builtins(),
-      result: Val::nil(), 
+      result: Val::nil(),
       stack: vec![],
+      back_stack: vec![],
       events: vec![],
     }
   }
@@ -203,7 +205,12 @@ impl State {
     }
 
     if self.stack.is_empty() {
-      return Some(self.result.clone());
+      if self.back_stack.is_empty() {
+        return Some(self.result.clone());
+      } else {
+        self.stack = self.back_stack.pop().unwrap();
+        return None;
+      }
     } else {
       return None;
     }
@@ -266,12 +273,32 @@ impl State {
     }
   }
 
+  pub fn set_main_program(&mut self, prog: Val) {
+    let prog = match prog {
+      Val::List(list) => list,
+      _ => vec![prog],
+    };
+
+    let stack = vec![Stackframe {
+      init: prog.clone(),
+      accum: prog,
+      pc: 0,
+      variables: self.variables.clone(),
+    }];
+    
+    if self.back_stack.is_empty() {
+      self.back_stack.push(stack);
+    } else {
+      self.back_stack[0] = stack;
+    }
+  }
+
   pub fn get_stackframe(&mut self) -> &mut Stackframe {
     self.stack.last_mut().unwrap()
   }
 
   pub fn running(&self) -> bool {
-    !self.stack.is_empty() && self.events.is_empty()
+    (!self.stack.is_empty() || !self.back_stack.is_empty()) && self.events.is_empty()
   }
 
   pub fn run(&mut self) -> Option<Val> {
@@ -329,6 +356,11 @@ impl State {
 
   pub fn print_error(&mut self, err: String) {
     self.send_event(p(&format!("(print \"{}\")", err)));
+  }
+
+  pub fn interrupt(&mut self, val: Val) {
+    self.back_stack.push(self.stack.clone());
+    self.set_program(val);
   }
 }
 
