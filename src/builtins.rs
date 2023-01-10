@@ -347,10 +347,7 @@ fn if_cb(args: Vec<Val>, state: &mut State) {
 
   match &val {
     Val::List(list) => {
-      let frame = state.get_stackframe();
-      frame.accum = list.clone();
-      frame.init = list.clone();
-      frame.pc = 0;
+      state.replace_stackframe(list.clone());
     },
 
     Val::Sym(sym) => {
@@ -479,6 +476,7 @@ fn eq_cb(args: Vec<Val>, state: &mut State) {
       return;
     }
   }
+
   state.return_stackframe(Val::truth());
 }
 
@@ -684,6 +682,7 @@ fn not_cb(args: Vec<Val>, state: &mut State) {
 }
 
 fn event_cb(args: Vec<Val>, state: &mut State) {
+  println!("event_cb: {:?}", args);
   state.send_event(Val::List(args));
   state.return_stackframe(Val::nil());
 }
@@ -718,6 +717,7 @@ fn format_cb(args: Vec<Val>, state: &mut State) {
 }
 
 fn set_program_cb(args: Vec<Val>, state: &mut State) {
+  println!("set_program_cb: {:?}", args);
   if args.is_empty() {
     state.return_stackframe(Val::nil());
     return;

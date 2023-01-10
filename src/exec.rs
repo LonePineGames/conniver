@@ -412,6 +412,10 @@ impl State {
     (!self.stack.is_empty() || !self.back_stack.is_empty()) && self.events.is_empty()
   }
 
+  pub fn finished(&self) -> bool {
+    self.stack.is_empty() && self.back_stack.is_empty() && self.events.is_empty()
+  }
+
   pub fn run(&mut self) -> Option<Val> {
     while self.running() {
       if let Some(result) = self.step() {
