@@ -8,6 +8,7 @@ pub mod builtins;
 pub mod exec;
 pub mod screen;
 pub mod val;
+pub mod variables;
 
 #[cfg(test)]
 pub mod test;

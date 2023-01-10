@@ -100,7 +100,7 @@ fn define_cb(args: Vec<Val>, state: &mut State) {
         },
       };
 
-      state.set_var(sym.to_string(), val.clone());
+      state.set_var(&sym.to_string(), val.clone());
     },
 
     Val::List(calllist) => {
@@ -120,7 +120,7 @@ fn define_cb(args: Vec<Val>, state: &mut State) {
 
         let first = calllist[0].clone();
         if let Val::Sym(sym) = first {
-          state.set_var(sym, val.clone());
+          state.set_var(&sym, val.clone());
         }
       }
     }
@@ -180,7 +180,7 @@ fn define_syntax_cb(args: Vec<Val>, state: &mut State) {
         },
       };
 
-      state.set_var(sym.to_string(), val.clone());
+      state.set_var(&sym.to_string(), val.clone());
     },
 
     Val::List(calllist) => {
@@ -200,7 +200,7 @@ fn define_syntax_cb(args: Vec<Val>, state: &mut State) {
 
         let first = calllist[0].clone();
         if let Val::Sym(sym) = first {
-          state.set_var(sym, val.clone());
+          state.set_var(&sym, val.clone());
         }
       }
     }

@@ -1,23 +1,13 @@
-use std::{collections::HashMap, fmt::{Formatter, Debug}};
+use std::{fmt::{Formatter, Debug}};
 
-use crate::{val::{Val, p, p_all}, builtins::get_builtins, screen::{ScreenLine, ScreenColor}};
+use crate::{val::{Val, p, p_all}, builtins::get_builtins, screen::{ScreenLine, ScreenColor}, variables::{VarSpace, VarRef}};
 
 #[derive(Clone)]
 pub struct Stackframe {
-  pub variables: HashMap<String, Val>,
+  pub vars: VarRef,
   pub init: Vec<Val>,
   pub accum: Vec<Val>,
   pub pc: usize,
-}
-
-impl Stackframe {
-  pub fn get_var(&self, name: &String) -> Option<&Val> {
-    return self.variables.get(name);
-  }
-
-  pub fn set_var(&mut self, name: String, val: Val) {
-    self.variables.insert(name, val);
-  }
 }
 
 impl Debug for Stackframe {
@@ -28,7 +18,7 @@ impl Debug for Stackframe {
 
 #[derive(Clone)]
 pub struct State {
-  pub variables: HashMap<String, Val>,
+  pub vars: VarSpace,
   pub stack: Vec<Stackframe>,
   pub back_stack: Vec<Vec<Stackframe>>,
   pub result: Val,
@@ -37,8 +27,11 @@ pub struct State {
 
 impl State {
   pub fn new() -> State {
+    let mut vars = VarSpace::new();
+    let root = vars.root();
+    vars.set_all(root, get_builtins());
     State { 
-      variables: get_builtins(),
+      vars,
       result: Val::nil(),
       stack: vec![],
       back_stack: vec![],
@@ -55,32 +48,25 @@ impl State {
     self.run();
   }
 
-  pub fn get_var(&self, name: &String) -> Option<&Val> {
+  pub fn get_var_ref(&self) -> VarRef {
     if self.stack.is_empty() {
-      return self.variables.get(name);
+      self.vars.root()
     } else {
       let frame = self.stack.last().unwrap();
-      frame.get_var(name)
+      frame.vars
     }
   }
 
-  pub fn set_var(&mut self, name: String, val: Val) {
-    if self.stack.len() > 1 {
-      println!("Setting var {:?} to {:?} in frame {}", name, val, self.stack.len()-1);
-      let frame = self.stack.last_mut().unwrap();
-      frame.set_var(name.clone(), val.clone());
-      if self.stack.len() >= 2 {
-        let ndx = self.stack.len() - 2;
-        let frame = &mut self.stack[ndx];
-        frame.set_var(name.clone(), val.clone());
-      }
-      if self.stack.len() <= 2 {
-        self.variables.insert(name, val);
-      }
-    } else {
-      println!("Setting var {:?} to {:?} globally", name, val);
-      self.variables.insert(name, val);
-    }
+  pub fn get_var(&self, name: &String) -> Option<&Val> {
+    let var_ref = self.get_var_ref();
+    self.vars.get(var_ref, name)
+  }
+
+  pub fn set_var(&mut self, name: &String, val: Val) {
+    let var_ref = self.get_var_ref();
+    let var_ref = self.vars.parent(var_ref);
+    let var_ref = self.vars.parent(var_ref);
+    self.vars.set(var_ref, name, val);
   }
 
   pub fn debug_state(&self) -> Vec<ScreenLine> {
@@ -111,15 +97,12 @@ impl State {
   }
 
   pub fn add_stackframe(&mut self, list: Vec<Val>) {
-    let variables = if self.stack.is_empty() {
-      self.variables.clone()
-    } else {
-      let frame = self.stack.last().unwrap();
-      frame.variables.clone()
-    };
+    println!("Adding stackframe: {:?}", list);
+    let var_ref = self.get_var_ref();
+    let vars = self.vars.new_child(var_ref);
 
     self.stack.push(Stackframe {
-      variables,
+      vars,
       init: list.clone(),
       accum: list,
       pc: 0,
@@ -127,6 +110,7 @@ impl State {
   }
 
   pub fn return_stackframe(&mut self, val: Val) {
+    println!("Returning stackframe: {:?}", val);
     if !self.stack.is_empty() {
       self.stack.pop();
     }
@@ -140,6 +124,7 @@ impl State {
   }
 
   pub fn replace_stackframe(&mut self, val: Vec<Val>) {
+    println!("Replacing stackframe: {:?}", val);
     let frame = self.stack.last_mut().unwrap();
     frame.accum = val.clone();
     frame.init = val;
@@ -147,6 +132,7 @@ impl State {
   }
 
   pub fn call(&mut self) {
+    println!("Calling...");
     if self.stack.is_empty() {
       return;
     }
@@ -170,21 +156,23 @@ impl State {
           let result = Val::List(frame.accum.clone());
           self.return_stackframe(result);
         } else {
-          let mut variables = self.variables.clone();
+
+          let root = self.vars.root();
+          let var_ref = self.vars.new_child(root);
           let params = list[1].clone();
           match params {
             Val::List(params) => {
               for (i, param) in params.iter().enumerate() {
                 if let Val::Sym(sym) = param {
                   if i + 1 < frame.accum.len() {
-                    variables.insert(sym.to_string(), frame.accum[i + 1].clone());
+                    self.vars.set(var_ref, &sym.to_string(), frame.accum[i + 1].clone());
                   }
                 }
               }
             },
 
             Val::Sym(sym) => {
-              variables.insert(sym.to_string(), Val::List(frame.accum[1..].to_vec()));
+              self.vars.set(var_ref, &sym.to_string(), Val::List(frame.accum[1..].to_vec()));
             },
 
             _ => {},
@@ -195,20 +183,20 @@ impl State {
             frame.accum = vec![Val::Sym("do".to_string())];
             frame.accum.extend(list[2..].iter().cloned());
             frame.init = frame.accum.clone();
-            frame.variables = variables;
+            frame.vars = var_ref;
             frame.pc = 0;
 
           } else {
             match &list[2] {
               Val::List(list) => {
-                frame.variables = variables;
+                frame.vars = var_ref;
                 frame.init = list.clone();
                 frame.accum = list.clone();
                 frame.pc = 0;
               },
 
               Val::Sym(sym) => {
-                if let Some(val) = variables.get(sym) {
+                if let Some(val) = self.vars.get(var_ref, sym) {
                   self.return_stackframe(val.clone());
                 } else {
                   self.return_stackframe(list[2].clone());
@@ -267,7 +255,7 @@ impl State {
 
     match val {
       Val::Sym(sym) => {
-        if let Some(val) = frame.get_var(&sym) {
+        if let Some(val) = self.vars.get(frame.vars, &sym) {
           frame.accum[frame.pc] = val.clone();
         }
         frame.pc += 1;
@@ -311,11 +299,14 @@ impl State {
       _ => vec![prog],
     };
 
+    let root = self.vars.root();
+    let vars = self.vars.new_child(root);
+
     let stack = vec![Stackframe {
       init: prog.clone(),
       accum: prog,
       pc: 0,
-      variables: self.variables.clone(),
+      vars,
     }];
     
     if self.back_stack.is_empty() {
