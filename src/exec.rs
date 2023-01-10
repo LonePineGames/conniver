@@ -139,6 +139,13 @@ impl State {
     }
   }
 
+  pub fn replace_stackframe(&mut self, val: Vec<Val>) {
+    let frame = self.stack.last_mut().unwrap();
+    frame.accum = val.clone();
+    frame.init = val;
+    frame.pc = 0;
+  }
+
   pub fn call(&mut self) {
     if self.stack.is_empty() {
       return;

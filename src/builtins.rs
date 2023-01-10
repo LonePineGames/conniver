@@ -231,10 +231,7 @@ fn load_cb(args: Vec<Val>, state: &mut State) {
   let file = std::fs::read_to_string(val);
   if let Ok(file) = file {
     let val = p_all(&file);
-    let frame = state.get_stackframe();
-    frame.accum = val.clone();
-    frame.init = val;
-    frame.pc = 0;
+    state.replace_stackframe(val);
   } else {
     state.print_error(format!("Could not load file: {}", val));
     state.return_stackframe(Val::nil());
@@ -313,18 +310,19 @@ fn if_cb(args: Vec<Val>, state: &mut State) {
       }
     },
 
-    Val::Sym(_) => {
-      true
-      // let val = state.get_var(&sym);
-      // if let Some(val) = val {
-      //   if val.is_nil() {
-      //     false
-      //   } else {
-      //     true
-      //   }
-      // } else {
-      //   false
-      // }
+    Val::Sym(sym) => {
+      let frame = state.get_stackframe();
+      if frame.pc <= 1 {
+        frame.pc = 2;
+        let val = state.get_var(&sym);
+        if let Some(val) = val {
+          !val.is_nil()
+        } else {
+          false
+        }
+      } else {
+        true
+      }
     },
 
     _ => {
@@ -682,10 +680,7 @@ fn apply_cb(args: Vec<Val>, state: &mut State) {
     }
   }
 
-  let frame = state.get_stackframe();
-  frame.init = list.clone();
-  frame.accum = list;
-  frame.pc = 0;
+  state.replace_stackframe(list);
 }
 
 fn format_cb(args: Vec<Val>, state: &mut State) {
@@ -714,11 +709,8 @@ fn eval_cb(args: Vec<Val>, state: &mut State) {
   if args.is_empty() {
     state.return_stackframe(Val::nil());
   } else {
-    let frame = state.get_stackframe();
     let mut list = vec![Val::Sym("do".to_string())];
     list.extend(args);
-    frame.accum = list.clone();
-    frame.init = list.clone();
-    frame.pc = 0;
+    state.replace_stackframe(list);
   }
 }
