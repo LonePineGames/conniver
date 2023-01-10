@@ -54,7 +54,8 @@ fn quote_cb(args: Vec<Val>, state: &mut State) {
 fn lambda_cb(args: Vec<Val>, state: &mut State) {
   let list = vec![Val::Sym("lambda".to_string())];
   let list = list.into_iter().chain(args.into_iter()).collect();
-  state.return_stackframe(Val::List(list));
+  let val = Val::Lambda(false, state.get_var_ref(), list);
+  state.return_stackframe(val);
 }
 
 fn define_cb(args: Vec<Val>, state: &mut State) {
@@ -112,7 +113,7 @@ fn define_cb(args: Vec<Val>, state: &mut State) {
         //   val.clone(),
         // ]);
       } else {
-        val = Val::List(vec![
+        val = Val::Lambda(false, state.get_var_ref(), vec![
           Val::Sym("lambda".to_string()),
           Val::List(calllist[1..].to_vec()),
           val.clone(),
@@ -139,8 +140,8 @@ fn define_syntax_cb(args: Vec<Val>, state: &mut State) {
   }
 
   let mut val = if args.len() > 1 {
-    if let Val::List(list) = args[1].clone() {
-      Val::Macro(list)
+      if let Val::List(list) = args[1].clone() {
+      Val::Lambda(true, state.get_var_ref(), list)
     } else {
       args[1].clone()
     }
@@ -634,21 +635,42 @@ fn type_num_cb(args: Vec<Val>, state: &mut State) {
 fn type_lambda_cb(args: Vec<Val>, state: &mut State) {
   if args.is_empty() {
     state.return_stackframe(Val::lies());
-  } else if let Val::List(list) = &args[0] {
-    if list.is_empty() {
-      state.return_stackframe(Val::lies());
-    } else if let Val::Sym(sym) = &list[0] {
-      if sym == "lambda" {
-        state.return_stackframe(Val::truth());
-      } else {
-        state.return_stackframe(Val::lies());
-      }
-    } else {
-      state.return_stackframe(Val::lies());
-    }
   } else {
-    state.return_stackframe(Val::lies());
+    match &args[0] {
+      Val::Lambda(..) => state.return_stackframe(Val::truth()),
+      Val::List(list) => {
+        if list.is_empty() {
+          state.return_stackframe(Val::lies());
+        } else if let Val::Sym(sym) = &list[0] {
+          if sym == "lambda" {
+            state.return_stackframe(Val::truth());
+          } else {
+            state.return_stackframe(Val::lies());
+          }
+        } else {
+          state.return_stackframe(Val::lies());
+        }
+      }
+      _ => state.return_stackframe(Val::lies()),
+    }
   }
+  // if args.is_empty() {
+  //   state.return_stackframe(Val::lies());
+  // } else if let Val::List(list) = &args[0] {
+  //   if list.is_empty() {
+  //     state.return_stackframe(Val::lies());
+  //   } else if let Val::Sym(sym) = &list[0] {
+  //     if sym == "lambda" {
+  //       state.return_stackframe(Val::truth());
+  //     } else {
+  //       state.return_stackframe(Val::lies());
+  //     }
+  //   } else {
+  //     state.return_stackframe(Val::lies());
+  //   }
+  // } else {
+  //   state.return_stackframe(Val::lies());
+  // }
 }
 
 fn not_cb(args: Vec<Val>, state: &mut State) {

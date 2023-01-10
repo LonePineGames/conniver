@@ -10,7 +10,7 @@
   (apply do x)
   (apply loop x)))
 
-(define-syntax cond (lambda clauses
+; (define-syntax cond (lambda clauses
   (define clause (car clauses))
   (define condition (car clause))
   (if clause
@@ -23,4 +23,23 @@
     )
     ()
   )
+))
+
+(define cond-inner (lambda (eval-context clauses)
+  (define clause (car clauses))
+  (define condition (car clause))
+  (if clause
+    (if (= condition 'else)
+      (eval-context (car (cdr clause)))
+      (if (eval-context condition)
+        (eval-context (car (cdr clause)))
+        (cond-inner eval-context (cdr clauses))
+      )
+    )
+    ()
+  )
+))
+
+(define-syntax cond (lambda (eval-context clauses)
+  (cond-inner eval-context clauses)
 ))

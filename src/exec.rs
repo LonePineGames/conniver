@@ -97,7 +97,6 @@ impl State {
   }
 
   pub fn add_stackframe(&mut self, list: Vec<Val>) {
-    println!("Adding stackframe: {:?}", list);
     let var_ref = self.get_var_ref();
     let vars = self.vars.new_child(var_ref);
 
@@ -110,7 +109,6 @@ impl State {
   }
 
   pub fn return_stackframe(&mut self, val: Val) {
-    println!("Returning stackframe: {:?}", val);
     if !self.stack.is_empty() {
       self.stack.pop();
     }
@@ -124,7 +122,6 @@ impl State {
   }
 
   pub fn replace_stackframe(&mut self, val: Vec<Val>) {
-    println!("Replacing stackframe: {:?}", val);
     let frame = self.stack.last_mut().unwrap();
     frame.accum = val.clone();
     frame.init = val;
@@ -132,16 +129,106 @@ impl State {
   }
 
   pub fn call(&mut self) {
-    println!("Calling...");
     if self.stack.is_empty() {
       return;
     }
 
+    let var_ref = self.get_var_ref();
     let frame = self.stack.last_mut().unwrap();
     if frame.accum.is_empty() {
       self.return_stackframe(Val::nil());
     } else {
+
       let callable = frame.accum[0].clone();
+      if let Val::Builtin(_, callback) = callable {
+        let args = frame.accum[1..].to_vec();
+        callback(args, self);
+      } else {
+        let vars = match callable {
+          Val::Lambda(_, vars, _) => vars,
+          _ => self.vars.root(),
+        };
+        let params = match callable {
+          Val::Lambda(true, _, _) => {
+            vec![
+              Val::Lambda(false, var_ref, vec![
+                Val::Sym("lambda".to_string()),
+                Val::List(vec![Val::Sym("$x".to_string())]),
+                Val::List(vec![
+                  Val::Sym("eval".to_string()),
+                  Val::Sym("$x".to_string()),
+                ]),
+              ]),
+              Val::List(frame.accum[1..].to_vec()),
+            ]
+          },
+          _ => frame.accum[1..].to_vec(),
+        };
+        let list = match callable {
+          Val::List(list) => list,
+          Val::Lambda(_, _, list) => list,
+          _ => vec![],
+        };
+        
+        if list.len() < 3 || list[0] != Val::Sym("lambda".to_string()) {
+          let result = Val::List(frame.accum.clone());
+          self.return_stackframe(result);
+        } else {
+
+          let var_ref = self.vars.new_child(vars);
+          let param_names = list[1].clone();
+          match param_names {
+            Val::List(param_names) => {
+              for (i, param_name) in param_names.iter().enumerate() {
+                if let Val::Sym(sym) = param_name {
+                  if i < params.len() {
+                    self.vars.set(var_ref, &sym.to_string(), params[i].clone());
+                  }
+                }
+              }
+            },
+
+            Val::Sym(sym) => {
+              self.vars.set(var_ref, &sym.to_string(), Val::List(params));
+            },
+
+            _ => {},
+          }
+
+          if list.len() > 3 {
+            let frame = self.get_stackframe();
+            frame.accum = vec![Val::Sym("do".to_string())];
+            frame.accum.extend(list[2..].iter().cloned());
+            frame.init = frame.accum.clone();
+            frame.vars = var_ref;
+            frame.pc = 0;
+
+          } else {
+            match &list[2] {
+              Val::List(list) => {
+                frame.vars = var_ref;
+                frame.init = list.clone();
+                frame.accum = list.clone();
+                frame.pc = 0;
+              },
+
+              Val::Sym(sym) => {
+                if let Some(val) = self.vars.get(var_ref, sym) {
+                  self.return_stackframe(val.clone());
+                } else {
+                  self.return_stackframe(list[2].clone());
+                }
+              },
+
+              _ => {
+                self.return_stackframe(list[2].clone());
+              },
+            }
+          }
+        }
+      }
+
+      /*let callable = frame.accum[0].clone();
       let callable = if let Val::Macro(val) = callable {
         Val::List(val)
       } else {
@@ -212,7 +299,7 @@ impl State {
       } else {
         let result = Val::List(frame.accum.clone());
         self.return_stackframe(result);
-      }
+      }*/
     }
   }
 
@@ -241,11 +328,12 @@ impl State {
     }
 
     if frame.pc >= 1 {
-      if let Val::Builtin(true, callback) = frame.accum[0] {
-        let args = frame.accum[1..].to_vec();
-        callback(args, self);
+      if let Val::Builtin(true, _) = frame.accum[0] {
+        self.call();
+        // let args = frame.accum[1..].to_vec();
+        // callback(args, self);
         return;
-      } else if let Val::Macro(_) = frame.accum[0] {
+      } else if let Val::Lambda(true, _, _) = frame.accum[0] {
         self.call();
         return;
       }

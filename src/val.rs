@@ -2,7 +2,7 @@
 use rust_lisp::{parser::parse, model::{Value, Symbol}};
 use std::fmt::Debug;
 
-use crate::exec::State;
+use crate::{exec::State, variables::VarRef};
 
 #[derive(Clone)]
 pub enum Val {
@@ -10,7 +10,7 @@ pub enum Val {
   Num(f32),
   List(Vec<Val>),
   Builtin(bool, fn(Vec<Val>, &mut State)),
-  Macro(Vec<Val>),
+  Lambda(bool, VarRef, Vec<Val>),
 }
 
 impl Val {
@@ -80,9 +80,9 @@ impl ToString for Val {
           "<builtin>".to_string()
         }
       },
-      Val::Macro(list) => {
+      Val::Lambda(_, _, list) => {
         let mut s = String::new();
-        s.push('(');
+        s.push_str("<L>(");
         for (i, val) in list.iter().enumerate() {
           if i > 0 {
             s.push(' ');
@@ -108,6 +108,9 @@ impl PartialEq for Val {
       (Val::Sym(sym1), Val::Sym(sym2)) => sym1 == sym2,
       (Val::Num(num1), Val::Num(num2)) => num1 == num2,
       (Val::List(list1), Val::List(list2)) => list1 == list2,
+      (Val::Lambda(_, _, list1), Val::Lambda(_, _, list2)) => list1 == list2,
+      (Val::Lambda(_, _, list1), Val::List(list2)) => list1 == list2,
+      (Val::List(list1), Val::Lambda(_, _, list2)) => list1 == list2,
       _ => false,
     }
   }

@@ -47,11 +47,9 @@ impl VarSpace {
     let mut s = scope;
     loop {
       if let Some(val) = self.vars[s.0].vars.get(var) {
-        println!("get {:?} {:?} {:?}", scope, var, val);
         return Some(val);
       }
       if s.0 == 0 {
-        println!("get {:?} {:?} None", scope, var);
         return None;
       }
       s = self.vars[s.0].parent;
@@ -59,7 +57,6 @@ impl VarSpace {
   }
 
   pub fn set(&mut self, scope: VarRef, var: &str, val: Val) {
-    println!("set {:?} {:?} {:?}", scope, var, val);
     self.vars[scope.0].vars.insert(var.to_string(), val);
   }
 
