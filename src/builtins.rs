@@ -1,7 +1,7 @@
 
 use std::collections::HashMap;
 
-use crate::{val::{Val, p_all}, exec::{State, Stackframe}};
+use crate::{val::{Val, p_all}, exec::State};
 
 pub type Callback = fn(args: Vec<Val>, &mut State);
 
@@ -11,6 +11,8 @@ pub fn get_builtins() -> HashMap<String, Val> {
   builtins.insert("quote".to_string(), Val::Builtin(true, quote_cb));
   builtins.insert("lambda".to_string(), Val::Builtin(true, lambda_cb));
   builtins.insert("define".to_string(), Val::Builtin(true, define_cb));
+  builtins.insert("define-syntax".to_string(), Val::Builtin(true, define_syntax_cb));
+  builtins.insert("eval".to_string(), Val::Builtin(false, eval_cb));
   builtins.insert("if".to_string(), Val::Builtin(true, if_cb));
 
   builtins.insert("load".to_string(), Val::Builtin(false, load_cb));
@@ -62,6 +64,86 @@ fn define_cb(args: Vec<Val>, state: &mut State) {
 
   let mut val = if args.len() > 1 {
     args[1].clone()
+  } else {
+    Val::nil()
+  };
+
+  match &args[0] {
+
+    Val::Sym(sym) => {
+      let val = match &val {
+        Val::List(list) => {
+          if list.is_empty() {
+            Val::nil()
+          } else {
+            let frame = state.get_stackframe();
+            if frame.pc <= 2 {
+              frame.pc = 2;
+              state.add_stackframe(list.clone());
+              return;
+            } else {
+              val.clone()
+            }
+          }
+        },
+
+        Val::Sym(sym) => {
+          if let Some(val) = state.get_var(&sym) {
+            val.clone()
+          } else {
+            val.clone()
+          }
+        },
+
+        _ => {
+          val.clone()
+        },
+      };
+
+      state.set_var(sym.to_string(), val.clone());
+    },
+
+    Val::List(calllist) => {
+      // lambda
+      if calllist.is_empty() {
+        // val = Val::List(vec![
+        //   Val::Sym("lambda".to_string()),
+        //   Val::List(vec![]),
+        //   val.clone(),
+        // ]);
+      } else {
+        val = Val::List(vec![
+          Val::Sym("lambda".to_string()),
+          Val::List(calllist[1..].to_vec()),
+          val.clone(),
+        ]);
+
+        let first = calllist[0].clone();
+        if let Val::Sym(sym) = first {
+          state.set_var(sym, val.clone());
+        }
+      }
+    }
+
+    _ => {
+      // do nothing
+    },
+  }
+
+  state.return_stackframe(Val::nil());
+}
+
+fn define_syntax_cb(args: Vec<Val>, state: &mut State) {
+  if args.is_empty() {
+    state.return_stackframe(Val::nil());
+  }
+
+  let mut val = if args.len() > 1 {
+    if let Val::List(list) = args[1].clone() {
+      Val::Macro(list)
+    } else {
+      args[1].clone()
+    }
   } else {
     Val::nil()
   };
@@ -231,17 +313,18 @@ fn if_cb(args: Vec<Val>, state: &mut State) {
       }
     },
 
-    Val::Sym(sym) => {
-      let val = state.get_var(&sym);
-      if let Some(val) = val {
-        if val.is_nil() {
-          false
-        } else {
-          true
-        }
-      } else {
-        true
-      }
+    Val::Sym(_) => {
+      true
+      // let val = state.get_var(&sym);
+      // if let Some(val) = val {
+      //   if val.is_nil() {
+      //     false
+      //   } else {
+      //     true
+      //   }
+      // } else {
+      //   false
+      // }
     },
 
     _ => {
@@ -611,8 +694,7 @@ fn format_cb(args: Vec<Val>, state: &mut State) {
     match arg {
       Val::Num(num) => string.push_str(&num.to_string()),
       Val::Sym(sym) => string.push_str(sym),
-      Val::List(list) => string.push_str(&format!("{:?}", list)),
-      Val::Builtin(_, _) => string.push_str("<builtin>"),
+      _ => string.push_str(format!("{:?}", arg).as_str()),
     }
   }
   state.return_stackframe(Val::Sym(string));
@@ -626,4 +708,17 @@ fn set_program_cb(args: Vec<Val>, state: &mut State) {
 
   state.set_main_program(args[0].clone());
   state.return_stackframe(Val::nil());
+}
+
+fn eval_cb(args: Vec<Val>, state: &mut State) {
+  if args.is_empty() {
+    state.return_stackframe(Val::nil());
+  } else {
+    let frame = state.get_stackframe();
+    let mut list = vec![Val::Sym("do".to_string())];
+    list.extend(args);
+    frame.accum = list.clone();
+    frame.init = list.clone();
+    frame.pc = 0;
+  }
 }

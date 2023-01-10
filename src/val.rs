@@ -10,6 +10,7 @@ pub enum Val {
   Num(f32),
   List(Vec<Val>),
   Builtin(bool, fn(Vec<Val>, &mut State)),
+  Macro(Vec<Val>),
 }
 
 impl Val {
@@ -43,6 +44,7 @@ impl Val {
           false
         }
       },
+      Val::Builtin(_, _) => true,
       _ => false,
     }
   }
@@ -57,7 +59,7 @@ impl ToString for Val {
         } else {
           sym.to_string()
         }
-      }
+      },
       Val::Num(num) => num.to_string(),
       Val::List(list) => {
         let mut s = String::new();
@@ -70,7 +72,7 @@ impl ToString for Val {
         }
         s.push(')');
         s
-      }
+      },
       Val::Builtin(special, _) => {
         if *special {
           "<special>".to_string()
@@ -78,6 +80,18 @@ impl ToString for Val {
           "<builtin>".to_string()
         }
       },
+      Val::Macro(list) => {
+        let mut s = String::new();
+        s.push('(');
+        for (i, val) in list.iter().enumerate() {
+          if i > 0 {
+            s.push(' ');
+          }
+          s.push_str(&val.to_string());
+        }
+        s.push(')');
+        s
+      }
     }
   }
 }
@@ -103,11 +117,13 @@ pub fn p(s: &str) -> Val {
   let mut ast_iter = parse(&s);
   let ast = ast_iter.next(); 
   if ast.is_none() {
-    return Val::nil();
+    let error = format!("Error parsing: {}", s);
+    return Val::Sym(error);
   }
   let ast_inner = ast.unwrap();
   if ast_inner.is_err() {
-    return Val::nil();
+    let error = format!("Error parsing: {}", s);
+    return Val::Sym(error);
   }
   let first_expression = ast_inner.unwrap();
 

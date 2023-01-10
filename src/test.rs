@@ -214,3 +214,31 @@ fn test_interrupt() {
   s.run();
   assert_eq!(s.take_event(), Some(p("(move w)")));
 }
+
+#[test]
+fn test_cond() {
+  let mut state = State::new();
+  let s = &mut state;
+  s.load_lib();
+
+  eval_s(&p("(define hello (lambda () \"Hello World\"))"), s);
+  assert_eq!(eval_s(&p("(hello)"), s), p("\"Hello World\""));
+  assert_eq!(eval_s(&p("hello"), s), p("(lambda () \"Hello World\")"));
+
+  /*eval_s(&p("(define-syntax cond (lambda clauses
+      (define clause (car clauses))
+      (define condition (car clause))
+      (if (= condition 'else)
+        (eval (car (cdr clause)))
+        (if (eval condition)
+          (eval (car (cdr clause)))
+          (apply cond (cdr clauses))
+        )
+      )
+    ))"), s);*/
+  assert_eq!(eval_s(&p("(cond ((= 1 1) 2) (else 3))"), s), p("2"));
+  eval_s(&p("(define (m x) (cond ((= x 1) 1) ((= x 2) 2) (else 3)))"), s);
+  assert_eq!(eval_s(&p("(m 1)"), s), p("1"));
+  assert_eq!(eval_s(&p("(m 2)"), s), p("2"));
+  assert_eq!(eval_s(&p("(m 4)"), s), p("3"));
+}

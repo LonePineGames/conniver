@@ -1,8 +1,8 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::{Formatter, Debug}};
 
 use crate::{val::{Val, p, p_all}, builtins::get_builtins, screen::{ScreenLine, ScreenColor}};
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Stackframe {
   pub variables: HashMap<String, Val>,
   pub init: Vec<Val>,
@@ -20,10 +20,16 @@ impl Stackframe {
   }
 }
 
+impl Debug for Stackframe {
+  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    write!(f, "Stackframe {{\n  init: {:?},\n  accum: {:?},\n  pc: {:?}  }}", Val::List(self.init.clone()), Val::List(self.accum.clone()), self.pc)
+  }
+}
+
 #[derive(Clone)]
 pub struct State {
   pub variables: HashMap<String, Val>,
-  stack: Vec<Stackframe>,
+  pub stack: Vec<Stackframe>,
   pub back_stack: Vec<Vec<Stackframe>>,
   pub result: Val,
   events: Vec<Val>,
@@ -59,11 +65,22 @@ impl State {
   }
 
   pub fn set_var(&mut self, name: String, val: Val) {
-    if !self.stack.is_empty() {
+    if self.stack.len() > 1 {
+      println!("Setting var {:?} to {:?} in frame {}", name, val, self.stack.len()-1);
       let frame = self.stack.last_mut().unwrap();
       frame.set_var(name.clone(), val.clone());
+      if self.stack.len() >= 2 {
+        let ndx = self.stack.len() - 2;
+        let frame = &mut self.stack[ndx];
+        frame.set_var(name.clone(), val.clone());
+      }
+      if self.stack.len() <= 2 {
+        self.variables.insert(name, val);
+      }
+    } else {
+      println!("Setting var {:?} to {:?} globally", name, val);
+      self.variables.insert(name, val);
     }
-    self.variables.insert(name, val);
   }
 
   pub fn debug_state(&self) -> Vec<ScreenLine> {
@@ -132,6 +149,11 @@ impl State {
       self.return_stackframe(Val::nil());
     } else {
       let callable = frame.accum[0].clone();
+      let callable = if let Val::Macro(val) = callable {
+        Val::List(val)
+      } else {
+        callable
+      };
       if let Val::Builtin(_, callback) = callable {
         let args = frame.accum[1..].to_vec();
         callback(args, self);
@@ -227,6 +249,9 @@ impl State {
       if let Val::Builtin(true, callback) = frame.accum[0] {
         let args = frame.accum[1..].to_vec();
         callback(args, self);
+        return;
+      } else if let Val::Macro(_) = frame.accum[0] {
+        self.call();
         return;
       }
     }
@@ -371,12 +396,13 @@ pub fn eval(val: Val) -> Val {
 
 pub fn eval_s(val: &Val, state: &mut State) -> Val {
   state.set_program(val.clone());
-  loop {
+  for _ in 0..10000 {
     state.process_events();
     if let Some(val) = state.step() {
       return val;
     }
   }
+  Val::Sym("Error: Too many steps".to_string())
 }
 
 /*
