@@ -41,11 +41,16 @@ impl State {
 
   pub fn load_lib(&mut self) {
     println!("Loading library...");
-    eval_s(&p("(load \"cnvr/lib.cnvr\")"), self);
+    //eval_s(&p("(load \"cnvr/lib.cnvr\")"), self);
     let lib = include_bytes!("../cnvr/lib.cnvr");
     let val = p_all(&String::from_utf8_lossy(lib));
     self.add_stackframe(val);
-    self.run();
+    for _ in 0..10000 {
+      self.process_events();
+      if let Some(_) = self.step() {
+        break;
+      }
+    }
   }
 
   pub fn get_var_ref(&self) -> VarRef {

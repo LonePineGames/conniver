@@ -32,6 +32,7 @@ pub fn get_builtins() -> HashMap<String, Val> {
   builtins.insert(">=".to_string(), Val::Builtin(false, greater_eq_cb));
   builtins.insert("list?".to_string(), Val::Builtin(false, type_list_cb));
   builtins.insert("symbol?".to_string(), Val::Builtin(false, type_sym_cb));
+  builtins.insert("string?".to_string(), Val::Builtin(false, type_string_cb));
   builtins.insert("number?".to_string(), Val::Builtin(false, type_num_cb));
   builtins.insert("lambda?".to_string(), Val::Builtin(false, type_lambda_cb));
   builtins.insert("not".to_string(), Val::Builtin(false, not_cb));
@@ -217,24 +218,25 @@ fn define_syntax_cb(args: Vec<Val>, state: &mut State) {
 fn load_cb(args: Vec<Val>, state: &mut State) {
   if args.is_empty() {
     state.return_stackframe(Val::nil());
+    return;
   }
 
-  let val = if let Val::Sym(sym) = &args[0] {
-    sym
+  let filename = if let Val::String(filename) = &args[0] {
+    filename
   } else {
     state.print_error(format!("Could not load file: {:?}", args[0]));
     state.return_stackframe(Val::nil());
     return;
   };
 
-  state.print(format!("Loading file: {}", val));
+  state.print(format!("Loading file: {}", filename));
 
-  let file = std::fs::read_to_string(val);
+  let file = std::fs::read_to_string(filename);
   if let Ok(file) = file {
     let val = p_all(&file);
     state.replace_stackframe(val);
   } else {
-    state.print_error(format!("Could not load file: {}", val));
+    state.print_error(format!("Could not load file: {}", filename));
     state.return_stackframe(Val::nil());
   }
 }
@@ -620,6 +622,16 @@ fn type_sym_cb(args: Vec<Val>, state: &mut State) {
   }
 }
 
+fn type_string_cb(args: Vec<Val>, state: &mut State) {
+  if args.is_empty() {
+    state.return_stackframe(Val::lies());
+  } else if let Val::String(_) = &args[0] {
+    state.return_stackframe(Val::truth());
+  } else {
+    state.return_stackframe(Val::lies());
+  }
+}
+
 fn type_num_cb(args: Vec<Val>, state: &mut State) {
   if args.is_empty() {
     state.return_stackframe(Val::lies());
@@ -710,10 +722,11 @@ fn format_cb(args: Vec<Val>, state: &mut State) {
     match arg {
       Val::Num(num) => string.push_str(&num.to_string()),
       Val::Sym(sym) => string.push_str(sym),
+      Val::String(sym) => string.push_str(sym),
       _ => string.push_str(format!("{:?}", arg).as_str()),
     }
   }
-  state.return_stackframe(Val::Sym(string));
+  state.return_stackframe(Val::String(string));
 }
 
 fn set_program_cb(args: Vec<Val>, state: &mut State) {

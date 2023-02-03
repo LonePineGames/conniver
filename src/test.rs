@@ -102,10 +102,15 @@ fn test_types() {
   assert_eq!(eval(p("(symbol? 'a)")), p("t"));
   assert_eq!(eval(p("(symbol? a)")), p("t"));
   assert_eq!(eval(p("(symbol? ())")), p("()"));
+  assert_eq!(eval(p("(string? \"a\")")), p("t"));
+  assert_eq!(eval(p("(string? 'a)")), p("()"));
+  assert_eq!(eval(p("(string? a)")), p("()"));
   assert_eq!(eval(p("(number? 5)")), p("t"));
   assert_eq!(eval(p("(number? a)")), p("()"));
   assert_eq!(eval(p("(lambda? a)")), p("()"));
   assert_eq!(eval(p("(lambda? 5)")), p("()"));
+
+  assert_ne!(p("\"a\""), p("a"));
   
   let mut state = State::new();
   let s = &mut state;
@@ -139,6 +144,7 @@ fn test_recursion() {
 fn test_print() {
   let mut state = State::new();
   let s = &mut state;
+  s.load_lib();
   eval_s(&p("(define (print x) (event 'print x))"), s);
   s.set_program(p("(print \"Hello World\")"));
   s.run();
@@ -151,6 +157,9 @@ fn test_print() {
   s.set_program(p("(print \"Hello World No. \" 2 \"!\")"));
   s.run();
   assert_eq!(s.take_event(), Some(p("(print \"Hello World No. 2!\")")));
+  s.set_program(p("(print (list 1 2 3))"));
+  s.run();
+  assert_eq!(s.take_event(), Some(p("(print \"(1 2 3)\")")));
 }
 
 #[test]

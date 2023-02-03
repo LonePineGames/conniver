@@ -7,6 +7,7 @@ use crate::{exec::State, variables::VarRef};
 #[derive(Clone)]
 pub enum Val {
   Sym(String),
+  String(String),
   Num(f32),
   List(Vec<Val>),
   Builtin(bool, fn(Vec<Val>, &mut State)),
@@ -54,11 +55,10 @@ impl ToString for Val {
   fn to_string(&self) -> String {
     match self {
       Val::Sym(sym) => {
-        if sym.contains(" ") {
-          format!("\"{}\"", sym)
-        } else {
-          sym.to_string()
-        }
+        sym.to_string()
+      },
+      Val::String(string) => {
+        format!("\"{}\"", string)
       },
       Val::Num(num) => num.to_string(),
       Val::List(list) => {
@@ -106,6 +106,7 @@ impl PartialEq for Val {
   fn eq(&self, other: &Self) -> bool {
     match (self, other) {
       (Val::Sym(sym1), Val::Sym(sym2)) => sym1 == sym2,
+      (Val::String(string1), Val::String(string2)) => string1 == string2,
       (Val::Num(num1), Val::Num(num2)) => num1 == num2,
       (Val::List(list1), Val::List(list2)) => list1 == list2,
       (Val::Lambda(_, _, list1), Val::Lambda(_, _, list2)) => list1 == list2,
@@ -154,7 +155,7 @@ pub fn p_all(s: &str) -> Vec<Val> {
 fn value_to_val(value: Value) -> Val {
   match value {
     Value::Symbol(Symbol(name)) => Val::Sym(name),
-    Value::String(string) => Val::Sym(string),
+    Value::String(string) => Val::String(string),
     Value::List(list) => Val::List(list.into_iter().map(value_to_val).collect()),
     Value::Int(int) => Val::Num(int as f32),
     Value::Float(float) => Val::Num(float),
