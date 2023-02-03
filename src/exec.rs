@@ -387,7 +387,7 @@ impl State {
   }
 
   pub fn running(&self) -> bool {
-    (!self.stack.is_empty() || !self.back_stack.is_empty()) && self.events.is_empty()
+    (!self.stack.is_empty() || !self.back_stack.is_empty()) && self.events.is_empty() && self.message_peek().is_none()
   }
 
   pub fn finished(&self) -> bool {
@@ -454,6 +454,41 @@ impl State {
   pub fn interrupt(&mut self, val: Val) {
     self.back_stack.push(self.stack.clone());
     self.set_program(val);
+  }
+
+  pub fn message_add(&mut self, message: &str) {
+    self.set_var(&message.to_string(), Val::Message(message.to_string()));
+  }
+
+  pub fn message_peek(&self) -> Option<Vec<Val>> {
+    if self.stack.is_empty() {
+      return None;
+    }
+    let frame = self.stack.last().unwrap();
+    if frame.accum.is_empty() {
+      return None;
+    }
+    match &frame.accum[0] {
+      Val::Message(message) => {
+        let mut result = vec![Val::Sym(message.clone())];
+        result.extend(frame.accum[1..].to_vec());
+        Some(result)
+      },
+      _ => None,
+    }
+  }
+
+  pub fn message_return(&mut self, val: Val) {
+    let frame = self.get_stackframe();
+    if frame.accum.is_empty() {
+      panic!("No message to return to")
+    }
+    match &frame.accum[0] {
+      Val::Message(_) => {
+      },
+      _ => panic!("No message to return to"),
+    }
+    self.return_stackframe(val);
   }
 }
 

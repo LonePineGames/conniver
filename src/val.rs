@@ -12,6 +12,7 @@ pub enum Val {
   List(Vec<Val>),
   Builtin(bool, fn(Vec<Val>, &mut State)),
   Lambda(bool, VarRef, Vec<Val>),
+  Message(String),
 }
 
 impl Val {
@@ -91,7 +92,10 @@ impl ToString for Val {
         }
         s.push(')');
         s
-      }
+      },
+      Val::Message(message) => {
+        message.to_string()
+      },
     }
   }
 }

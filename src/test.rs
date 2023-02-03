@@ -223,3 +223,25 @@ fn test_closure() {
   assert_eq!(eval_s(&p("((add 2) 3)"), s), p("5"));
   assert_eq!(eval_s(&p("((add 3) 4)"), s), p("7"));
 }
+
+#[test]
+fn test_message() {
+  let mut state = State::new();
+  let s = &mut state;
+  s.load_lib();
+
+  s.message_add("test");
+  s.set_program(p("(test 1 2 3)"));
+  assert_eq!(s.message_peek(), None);
+  s.run();
+  assert_eq!(s.message_peek(), Some(vec![p("test"), p("1"), p("2"), p("3")]));
+
+  s.set_program(p("(+ 2 (test 4 5 6))"));
+  s.run();
+  assert_eq!(s.message_peek(), Some(vec![p("test"), p("4"), p("5"), p("6")]));
+  s.message_return(p("7"));
+  assert_eq!(s.message_peek(), None);
+  s.run();
+  assert_eq!(s.message_peek(), None);
+  assert_eq!(s.result, p("9"));
+}
