@@ -468,6 +468,9 @@ impl State {
     if frame.accum.is_empty() {
       return None;
     }
+    if frame.pc < frame.accum.len() {
+      return None;
+    }
     match &frame.accum[0] {
       Val::Message(message) => {
         let mut result = vec![Val::Sym(message.clone())];
