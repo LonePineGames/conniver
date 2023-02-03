@@ -1,4 +1,4 @@
-use crate::{val::*, exec::{eval, State, eval_s}, screen::{ScreenLine, ScreenColor}};
+use crate::{val::*, exec::{eval, State, eval_s}};
 
 #[test]
 fn test_parsing() {
@@ -170,31 +170,6 @@ pub fn test_collatz() {
   assert_eq!(eval_s(&p("(collatz 10)"), s), p("7"));
   assert_eq!(eval_s(&p("(collatz 100)"), s), p("26"));
   assert_eq!(eval_s(&p("(collatz 1161)"), s), p("182"));
-}
-
-#[test]
-pub fn test_debug() {
-  let mut state = State::new();
-  let s = &mut state;
-  s.load_lib();
-
-  eval_s(&p("(load \"cnvr/velocity.cnvr\")"), s);
-  assert_eq!(s.take_event(), None);
-  s.set_program(p("(loop (goto 20 20) (pick ingot autoprocessor) (goto 20 30) (place pad))"));
-  s.run();
-  assert_eq!(s.take_event(), Some(p("(goto 20 20)")));
-
-  let debug = s.debug_state();
-  assert_eq!(debug.len(), 5);
-  assert_eq!(debug[0], ScreenLine { indent: "".to_string(), text: "(loop ...)".to_string(), 
-      color: ScreenColor::White, order: 0, importance: 16 });
-  assert_eq!(debug[1], ScreenLine { indent: "  ".to_string(), text: "(goto 20 20)".to_string(), 
-      color: ScreenColor::White, order: 1, importance: 18 });
-  assert_eq!(debug[2], ScreenLine { indent: "  ".to_string(), text: "(pick ingot autoprocessor)".to_string(), color: ScreenColor::Green, order: 2, importance: 20 });
-  assert_eq!(debug[3], ScreenLine { indent: "  ".to_string(), text: "(goto 20 30)".to_string(), 
-      color: ScreenColor::White, order: 3, importance: 18 });
-  assert_eq!(debug[4], ScreenLine { indent: "  ".to_string(), text: "(place pad)".to_string(), 
-      color: ScreenColor::White, order: 4, importance: 16 });
 }
  
 #[test]

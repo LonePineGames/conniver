@@ -1,6 +1,6 @@
 use std::{fmt::{Formatter, Debug}};
 
-use crate::{val::{Val, p, p_all}, builtins::get_builtins, screen::{ScreenLine, ScreenColor}, variables::{VarSpace, VarRef}};
+use crate::{val::{Val, p, p_all}, builtins::get_builtins, variables::{VarSpace, VarRef}};
 
 #[derive(Clone)]
 pub struct Stackframe {
@@ -67,33 +67,6 @@ impl State {
     let var_ref = self.vars.parent(var_ref);
     let var_ref = self.vars.parent(var_ref);
     self.vars.set(var_ref, name, val);
-  }
-
-  pub fn debug_state(&self) -> Vec<ScreenLine> {
-    let mut result = vec![];
-    for frame in self.stack.iter() {
-      for (i, val) in frame.init.iter().enumerate() {
-        let text = if i == 0 {
-          format!("({:?} ...)", val)
-        } else {
-          format!("{:?}", val)
-        };
-        let indent = if i == 0 { 0 } else { 2 };
-        let indent = " ".repeat(indent);
-        let color = if i == frame.pc { ScreenColor::Green } else { ScreenColor::White };
-        let importance = 20 - 2*(i as i32 - frame.pc as i32).abs();
-
-        result.push(ScreenLine { indent, text, color, order: 0, importance });
-      }
-    }
-
-    // make sure order is correct
-    let result = result.iter().enumerate().map(|(i, line)| -> ScreenLine {
-      let line = line.clone();
-      ScreenLine { order: i as i32, ..line }
-    }).collect::<Vec<_>>();
-
-    return result;
   }
 
   pub fn add_stackframe(&mut self, list: Vec<Val>) {
