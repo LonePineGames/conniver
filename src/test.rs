@@ -1,4 +1,4 @@
-use crate::{val::*, exec::{eval, State, eval_s}};
+use crate::{val::*, exec::{eval, State, eval_s}, object::{read_ivec2, read_object, read_string}};
 
 #[test]
 fn test_parsing() {
@@ -244,4 +244,44 @@ fn test_message() {
   s.run();
   assert_eq!(s.message_peek(), None);
   assert_eq!(s.result, p("9"));
+}
+
+#[test]
+fn test_read_object() {
+  let obj = p("((name test) (type item) (size 1 1) (health 100) (speed 0.1) (range 0) (power 0) (consumes 0) (outputs 0) (requirements 0) (buildtime 0) (description \"This is some complex object\"))");
+
+  let mut props = 0;
+  read_object(&obj, |key, val| {
+    props += 1;
+    match key {
+      "name" => assert_eq!(val, &p("test")),
+      "type" => assert_eq!(val, &p("item")),
+      "size" => {
+        assert_eq!(val, &p("(1 1)"));
+        read_ivec2(&val, |x, y| {
+          assert_eq!(x, 1);
+          assert_eq!(y, 1);
+        }, || panic!("Invalid size"));
+      },
+      "health" => {
+        assert_eq!(val, &p("100"));
+        read_ivec2(&val, |_, _| {
+          panic!("read_ivec2 should not be called on a single value");
+        }, || ());
+      },
+      "speed" => assert_eq!(val, &p("0.1")),
+      "range" => assert_eq!(val, &p("0")),
+      "power" => assert_eq!(val, &p("0")),
+      "consumes" => assert_eq!(val, &p("0")),
+      "outputs" => assert_eq!(val, &p("0")),
+      "requirements" => assert_eq!(val, &p("0")),
+      "buildtime" => assert_eq!(val, &p("0")),
+      "description" => {
+        assert_eq!(val, &p("\"This is some complex object\""));
+        assert_eq!(read_string(val), "This is some complex object");
+      },
+      _ => panic!("Unknown key: {}", key),
+    }
+  });
+  assert_eq!(props, 12);
 }

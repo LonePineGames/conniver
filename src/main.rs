@@ -1,16 +1,13 @@
 use std::io::{self, Write};
 
 use exec::State;
-
 use crate::val::p;
 
 pub mod builtins;
 pub mod exec;
+pub mod object;
 pub mod val;
 pub mod variables;
-
-#[cfg(test)]
-pub mod test;
 
 fn main() {
   let mut state = State::new();
