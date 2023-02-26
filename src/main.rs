@@ -20,9 +20,6 @@ fn main() {
     state.set_program(p(&input));
     while state.running() {
       state.run();
-      while let Some(event) = state.take_event() {
-        println!("{:?}", event);
-      }
     }
     println!("{:?}", state.result);
   }

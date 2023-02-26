@@ -22,7 +22,6 @@ pub struct State {
   pub stack: Vec<Stackframe>,
   pub back_stack: Vec<Vec<Stackframe>>,
   pub result: Val,
-  events: Vec<Val>,
 }
 
 impl State {
@@ -35,7 +34,6 @@ impl State {
       result: Val::nil(),
       stack: vec![],
       back_stack: vec![],
-      events: vec![],
     }
   }
 
@@ -46,7 +44,6 @@ impl State {
     let val = p_all(&String::from_utf8_lossy(lib));
     self.add_stackframe(val);
     for _ in 0..10000 {
-      self.process_events();
       if let Some(_) = self.step() {
         break;
       }
@@ -387,11 +384,11 @@ impl State {
   }
 
   pub fn running(&self) -> bool {
-    (!self.stack.is_empty() || !self.back_stack.is_empty()) && self.events.is_empty() && self.message_peek().is_none()
+    (!self.stack.is_empty() || !self.back_stack.is_empty()) && self.message_peek().is_none()
   }
 
   pub fn finished(&self) -> bool {
-    self.stack.is_empty() && self.back_stack.is_empty() && self.events.is_empty()
+    self.stack.is_empty() && self.back_stack.is_empty()
   }
 
   pub fn run(&mut self) -> Option<Val> {
@@ -404,54 +401,6 @@ impl State {
       }
     }
     None
-  }
-
-  pub fn process_events(&mut self) {
-    for event in &self.events {
-      if let Val::List(list) = event {
-        if !list.is_empty() {
-          if let Val::Sym(sym) = &list[0] {
-            let sym: &str = sym;
-            match sym {
-              "print" => {
-                if list.len() > 1 {
-                  if let Val::Sym(str) = &list[1] {
-                    println!("{}", str);
-                  } else {
-                    println!("{:?}", list[1]);
-                  }
-                }
-              },
-              _ => {
-                println!("Unknown event: {:?}", event);
-              },
-            }
-          }
-        }
-      }
-    }
-
-    self.events.clear();
-  }
-
-  pub fn take_event(&mut self) -> Option<Val> {
-    if self.events.is_empty() {
-      None
-    } else {
-      Some(self.events.remove(0))
-    }
-  }
-
-  pub fn send_event(&mut self, event: Val) {
-    self.events.push(event);
-  }
-
-  pub fn print(&mut self, err: String) {
-    self.send_event(p(&format!("(print \"{}\")", err)));
-  }
-
-  pub fn print_error(&mut self, err: String) {
-    self.send_event(p(&format!("(print \"{}\")", err)));
   }
 
   pub fn interrupt(&mut self, val: Val) {
@@ -506,7 +455,6 @@ pub fn eval(val: Val) -> Val {
 pub fn eval_s(val: &Val, state: &mut State) -> Val {
   state.set_program(val.clone());
   for _ in 0..10000 {
-    state.process_events();
     if let Some(val) = state.step() {
       return val;
     }

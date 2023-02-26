@@ -36,7 +36,6 @@ pub fn get_builtins() -> HashMap<String, Val> {
   builtins.insert("number?".to_string(), Val::Builtin(false, type_num_cb));
   builtins.insert("lambda?".to_string(), Val::Builtin(false, type_lambda_cb));
   builtins.insert("not".to_string(), Val::Builtin(false, not_cb));
-  builtins.insert("event".to_string(), Val::Builtin(false, event_cb));
   builtins.insert("apply".to_string(), Val::Builtin(false, apply_cb));
   builtins.insert("format".to_string(), Val::Builtin(false, format_cb));
   builtins.insert("set-program".to_string(), Val::Builtin(false, set_program_cb));
@@ -216,6 +215,7 @@ fn define_syntax_cb(args: Vec<Val>, state: &mut State) {
 }
 
 fn load_cb(args: Vec<Val>, state: &mut State) {
+  println!("load_cb: {:?}", args);
   if args.is_empty() {
     state.return_stackframe(Val::nil());
     return;
@@ -224,19 +224,20 @@ fn load_cb(args: Vec<Val>, state: &mut State) {
   let filename = if let Val::String(filename) = &args[0] {
     filename
   } else {
-    state.print_error(format!("Could not load file: {:?}", args[0]));
+    println!("Could not load file: {:?}", args[0]);
     state.return_stackframe(Val::nil());
     return;
   };
 
-  state.print(format!("Loading file: {}", filename));
+  println!("Loading file: {}", filename);
 
   let file = std::fs::read_to_string(filename);
   if let Ok(file) = file {
     let val = p_all(&file);
+    println!("file loaded: {:?}", val);
     state.replace_stackframe(val);
   } else {
-    state.print_error(format!("Could not load file: {}", filename));
+    println!("Could not load file: {}", filename);
     state.return_stackframe(Val::nil());
   }
 }
@@ -691,12 +692,6 @@ fn not_cb(args: Vec<Val>, state: &mut State) {
   } else {
     state.return_stackframe(Val::lies())
   }
-}
-
-fn event_cb(args: Vec<Val>, state: &mut State) {
-  println!("event_cb: {:?}", args);
-  state.send_event(Val::List(args));
-  state.return_stackframe(Val::nil());
 }
 
 fn apply_cb(args: Vec<Val>, state: &mut State) {

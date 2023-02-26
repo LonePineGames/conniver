@@ -64,13 +64,6 @@ fn test_lambda() {
   eval_s(&p("(define hello (lambda () greeting))"), s);
   assert_eq!(eval_s(&p("(hello)"), s), p("\"Hello World\""));
 
-  eval_s(&p("(define hello (lambda () (event print greeting) greeting))"), s);
-  eval_s(&p("(define greeting \"Hello Again\")"), s);
-  s.set_program(p("(hello)"));
-  s.run();
-  assert_eq!(s.take_event(), Some(p("(print \"Hello Again\")")));
-  assert_eq!(s.run(), Some(p("\"Hello Again\"")));
-
   eval_s(&p("(define square (lambda (x) (* x x)))"), s);
   assert_eq!(eval_s(&p("(square 30)"), s), p("900"));
 
@@ -141,28 +134,6 @@ fn test_recursion() {
 }
 
 #[test]
-fn test_print() {
-  let mut state = State::new();
-  let s = &mut state;
-  s.load_lib();
-  eval_s(&p("(define (print x) (event 'print x))"), s);
-  s.set_program(p("(print \"Hello World\")"));
-  s.run();
-  assert_eq!(s.take_event(), Some(p("(print \"Hello World\")")));
-  
-  eval_s(&p("(define print (lambda x (event 'print (apply format x))))"), s);
-  s.set_program(p("(print \"Hello World\")"));
-  s.run();
-  assert_eq!(s.take_event(), Some(p("(print \"Hello World\")")));
-  s.set_program(p("(print \"Hello World No. \" 2 \"!\")"));
-  s.run();
-  assert_eq!(s.take_event(), Some(p("(print \"Hello World No. 2!\")")));
-  s.set_program(p("(print (list 1 2 3))"));
-  s.run();
-  assert_eq!(s.take_event(), Some(p("(print \"(1 2 3)\")")));
-}
-
-#[test]
 pub fn test_collatz() {
   let mut state = State::new();
   let s = &mut state;
@@ -179,24 +150,6 @@ pub fn test_collatz() {
   assert_eq!(eval_s(&p("(collatz 10)"), s), p("7"));
   assert_eq!(eval_s(&p("(collatz 100)"), s), p("26"));
   assert_eq!(eval_s(&p("(collatz 1161)"), s), p("182"));
-}
- 
-#[test]
-fn test_interrupt() {
-  let mut state = State::new();
-  let s = &mut state;
-  s.load_lib();
-
-  eval_s(&p("(load \"cnvr/velocity.cnvr\")"), s);
-  assert_eq!(s.take_event(), None);
-  s.set_program(p("(loop (goto 20 20) (pick ingot autoprocessor) (goto 20 30) (place pad))"));
-  s.run();
-  assert_eq!(s.take_event(), Some(p("(goto 20 20)")));
-
-  s.interrupt(p("(input-key a)"));
-  assert_eq!(s.take_event(), None);
-  s.run();
-  assert_eq!(s.take_event(), Some(p("(move w)")));
 }
 
 #[test]

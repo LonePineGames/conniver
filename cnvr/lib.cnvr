@@ -1,15 +1,19 @@
+(print "Hello library")
 
 (define (zero? x) (= 0 x))
 (define (odd? x) (= (% x 2) 1))
 (define (even? x) (= (% x 2) 0))
 (define list (lambda x x))
 
-(define print (lambda x (event 'print (apply format x))))
-(print "Hello library")
+;(define loop (lambda x 
+;  (apply do x)
+;  (apply loop x)))
 
-(define loop (lambda x 
-  (apply do x)
-  (apply loop x)))
+(define-syntax loop (lambda (eval-context body)
+  (print "loop " body)
+  (eval-context (cons 'do body))
+  (loop eval-context body)
+))
 
 (define cond-inner (lambda (eval-context clauses)
   (define clause (car clauses))
