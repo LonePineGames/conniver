@@ -16,7 +16,7 @@ impl Debug for Stackframe {
   }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct State {
   pub vars: VarSpace,
   pub stack: Vec<Stackframe>,
@@ -395,7 +395,10 @@ impl State {
   }
 
   pub fn run(&mut self) -> Option<Val> {
-    while self.running() {
+    for _ in 0..1000 {
+      if !self.running() {
+        break;
+      }
       if let Some(result) = self.step() {
         return Some(result);
       }
