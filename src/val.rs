@@ -81,9 +81,9 @@ impl ToString for Val {
           "<builtin>".to_string()
         }
       },
-      Val::Lambda(_, _, list) => {
+      Val::Lambda(_, vars, list) => {
         let mut s = String::new();
-        s.push_str("<L>(");
+        s.push_str(&format!("<L{}>(", vars.0));
         for (i, val) in list.iter().enumerate() {
           if i > 0 {
             s.push(' ');

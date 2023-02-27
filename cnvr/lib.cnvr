@@ -5,14 +5,10 @@
 (define (even? x) (= (% x 2) 0))
 (define list (lambda x x))
 
-;(define loop (lambda x 
-;  (apply do x)
-;  (apply loop x)))
-
 (define-syntax loop (lambda (eval-context body)
   (print "loop " body)
   (eval-context (cons 'do body))
-  (loop eval-context body)
+  (eval-context (cons 'loop body))
 ))
 
 (define cond-inner (lambda (eval-context clauses)

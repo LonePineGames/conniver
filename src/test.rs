@@ -49,6 +49,13 @@ fn test_variables() {
   
   eval_s(&p("(define y x)"), s);
   assert_eq!(eval_s(&p("y"), s), p("4"));
+  
+  // variable pollution
+  assert_eq!(eval_s(&p("a"), s), p("a"));
+  eval_s(&p("(define mutate (lambda (x) (define a x) a))"), s);
+  assert_eq!(eval_s(&p("(mutate 10)"), s), p("10"));
+  assert_eq!(eval_s(&p("a"), s), p("a"));
+  println!("{}", s.describe());
 }
 
 #[test]
@@ -169,12 +176,31 @@ fn test_cond() {
 fn test_closure() {
   let mut state = State::new();
   let s = &mut state;
-  s.load_lib();
+  // s.load_lib();
 
   eval_s(&p("(define (add x) (lambda (y) (+ x y)))"), s);
   assert_eq!(eval_s(&p("((add 1) 2)"), s), p("3"));
   assert_eq!(eval_s(&p("((add 2) 3)"), s), p("5"));
   assert_eq!(eval_s(&p("((add 3) 4)"), s), p("7"));
+
+  eval_s(&p("(define (mul x) (lambda (y) (* x y)))"), s);
+  assert_eq!(eval_s(&p("((mul 2) 3)"), s), p("6"));
+  assert_eq!(eval_s(&p("((mul ((add 1) 2)) 3)"), s), p("9"));
+  assert_eq!(eval_s(&p("((mul ((add 1) 2)) ((add 1) 2))"), s), p("9"));
+  assert_eq!(eval_s(&p("((mul ((mul 4) 2)) ((add 1) 2))"), s), p("24"));
+
+  eval_s(&p("(define add5 (add 5))"), s);
+  assert_eq!(eval_s(&p("(add5 10)"), s), p("15"));
+  assert_eq!(eval_s(&p("(add5 ((mul 2) 3))"), s), p("11"));
+  assert_eq!(eval_s(&p("((mul 2) (add5 3))"), s), p("16"));
+
+  eval_s(&p("(define (future x) (lambda () x))"), s);
+  assert_eq!(eval_s(&p("((future 4))"), s), p("4"));
+  eval_s(&p("(define five (future 5))"), s);
+  println!("{}", s.describe());
+  assert_eq!(eval_s(&p("(five)"), s), p("5"));
+  assert_eq!(eval_s(&p("((future 6))"), s), p("6"));
+  assert_eq!(eval_s(&p("(five)"), s), p("5"));
 }
 
 #[test]
@@ -197,6 +223,34 @@ fn test_message() {
   s.run();
   assert_eq!(s.message_peek(), None);
   assert_eq!(s.result, p("9"));
+}
+
+#[test]
+fn test_message_loop() {
+  let mut state = State::new();
+  let s = &mut state;
+  s.load_lib();
+
+  s.message_add("test");
+  s.message_add("print");
+  s.set_program(p("(loop (test 1 2 3) (test 4 5 6))"));
+
+  for i in 0..10 {
+    println!("iteration {}", i);
+    assert_eq!(s.message_peek(), None);
+    s.run();
+    println!("{}", s.describe());
+    assert_eq!(s.message_peek(), Some(vec![p("print"), p("\"loop \""), p("((test 1 2 3) (test 4 5 6))")]));
+    s.message_return(Val::nil());
+    s.run();
+    assert_eq!(s.message_peek(), Some(vec![p("test"), p("1"), p("2"), p("3")]));
+    s.message_return(p("7"));
+    assert_eq!(s.message_peek(), None);
+    s.run();
+    assert_eq!(s.message_peek(), Some(vec![p("test"), p("4"), p("5"), p("6")]));
+    s.message_return(p("8"));
+    assert_eq!(s.message_peek(), None);
+  }
 }
 
 #[test]

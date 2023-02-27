@@ -1,5 +1,0 @@
-(define (goto x y) (event 'goto x y))
-(define (move d) (event 'move d))
-(define (input-key char)
-  (set-program (move w))
-)

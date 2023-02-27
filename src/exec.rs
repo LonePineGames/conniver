@@ -1,6 +1,6 @@
 use std::{fmt::{Formatter, Debug}};
 
-use crate::{val::{Val, p, p_all}, builtins::get_builtins, variables::{VarSpace, VarRef}};
+use crate::{val::{Val, p_all}, builtins::get_builtins, variables::{VarSpace, VarRef}};
 
 #[derive(Clone)]
 pub struct Stackframe {
@@ -37,6 +37,16 @@ impl State {
     }
   }
 
+  pub fn describe(&self) -> String {
+    let mut s = String::new();
+    s.push_str(&format!("=== State ===\n"));
+    s.push_str(&self.vars.describe());
+    s.push_str(&format!("{:?}\n", self.stack));
+    s.push_str(&format!("{:?}\n", self.back_stack));
+    s.push_str(&format!("Result: {:?}\n", self.result));
+    s
+  }
+
   pub fn load_lib(&mut self) {
     println!("Loading library...");
     //eval_s(&p("(load \"cnvr/lib.cnvr\")"), self);
@@ -66,17 +76,21 @@ impl State {
 
   pub fn set_var(&mut self, name: &String, val: Val) {
     let var_ref = self.get_var_ref();
-    let var_ref = self.vars.parent(var_ref);
-    let var_ref = self.vars.parent(var_ref);
+    // let var_ref = self.vars.parent(var_ref);
+    // let var_ref = if self.vars.parent(var_ref) == self.vars.root() {
+    //   self.vars.root()
+    // } else {
+    //   var_ref
+    // };
     self.vars.set(var_ref, name, val);
   }
 
   pub fn add_stackframe(&mut self, list: Vec<Val>) {
-    let var_ref = self.get_var_ref();
-    let vars = self.vars.new_child(var_ref);
+    // let var_ref = self.get_var_ref();
+    // let vars = self.vars.new_child(var_ref);
 
     self.stack.push(Stackframe {
-      vars,
+      vars: self.get_var_ref(),
       init: list.clone(),
       accum: list,
       pc: 0,
@@ -124,8 +138,9 @@ impl State {
           _ => self.vars.root(),
         };
         let params = match callable {
-          Val::Lambda(true, _, _) => {
+          Val::Lambda(true, _, _) => { // from define-syntax
             vec![
+              // eval-context
               Val::Lambda(false, var_ref, vec![
                 Val::Sym("lambda".to_string()),
                 Val::List(vec![Val::Sym("$x".to_string())]),
@@ -363,13 +378,13 @@ impl State {
     };
 
     let root = self.vars.root();
-    let vars = self.vars.new_child(root);
+    //let vars = self.vars.new_child(root);
 
     let stack = vec![Stackframe {
       init: prog.clone(),
       accum: prog,
       pc: 0,
-      vars,
+      vars: root,
     }];
     
     if self.back_stack.is_empty() {

@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use crate::val::Val;
 
-#[derive(Clone, Copy, Debug)]
-pub struct VarRef(usize);
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct VarRef(pub usize);
 
 #[derive(Clone, Debug)]
 pub struct Vars {
@@ -62,5 +62,19 @@ impl VarSpace {
 
   pub fn set_all(&mut self, scope: VarRef, vars: HashMap<String, Val>) {
     self.vars[scope.0].vars.extend(vars);
+  }
+
+  pub fn describe(&self) -> String {
+    let mut s = String::new();
+    for (i, v) in self.vars.iter().enumerate() {
+      s.push_str(&format!("{}: -> {}\n", i, v.parent.0));
+      for (k, v) in v.vars.iter() {
+        if let Val::Builtin(_, _) = v {
+          continue;
+        }
+        s.push_str(&format!("  {} = {:?}\n", k, v));
+      }
+    }
+    s
   }
 }
