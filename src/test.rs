@@ -296,3 +296,36 @@ fn test_read_object() {
   });
   assert_eq!(props, 12);
 }
+
+#[test]
+fn test_memory_management() {
+  let mut state = State::new();
+  let s = &mut state;
+  s.load_lib();
+
+  let init_mem = s.memory_usage();
+  eval_s(&p("(define (fib n) (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2)))))"), s);
+  assert_eq!(s.memory_usage(), init_mem + 74);
+  assert_eq!(eval_s(&p("(fib 10)"), s), p("55"));
+  assert_eq!(s.stack.len(), 0);
+  assert_eq!(s.memory_usage(), init_mem + 74);
+
+  eval_s(&p("(define (add x) (lambda (y) (+ x y)))"), s);
+  eval_s(&p("(define add5 (add 5))"), s);
+  eval_s(&p("(define (mul x) (lambda (y) (* x y)))"), s);
+  let init_mem = s.memory_usage();
+  assert_eq!(eval_s(&p("((add 1) 2)"), s), p("3"));
+  assert_eq!(eval_s(&p("((add 2) 3)"), s), p("5"));
+  assert_eq!(eval_s(&p("((add 3) 4)"), s), p("7"));
+  assert_eq!(eval_s(&p("((mul 2) 3)"), s), p("6"));
+  assert_eq!(eval_s(&p("((mul ((add 1) 2)) 3)"), s), p("9"));
+  assert_eq!(eval_s(&p("((mul ((add 1) 2)) ((add 1) 2))"), s), p("9"));
+  assert_eq!(eval_s(&p("((mul ((mul 4) 2)) ((add 1) 2))"), s), p("24"));
+  assert_eq!(eval_s(&p("(add5 10)"), s), p("15"));
+  assert_eq!(eval_s(&p("(add5 ((mul 2) 3))"), s), p("11"));
+  assert_eq!(eval_s(&p("((mul 2) (add5 3))"), s), p("16"));
+  assert_eq!(s.stack.len(), 0);
+  //assert_eq!(s.vars.memory_usage(), init_mem);
+  assert_eq!(s.memory_usage(), init_mem + 182);
+}
+

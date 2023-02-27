@@ -2,7 +2,7 @@
 use rust_lisp::{parser::parse, model::{Value, Symbol}};
 use std::fmt::Debug;
 
-use crate::{exec::State, variables::VarRef};
+use crate::{exec::State, variables::ScopeRef};
 
 #[derive(Clone)]
 pub enum Val {
@@ -11,7 +11,7 @@ pub enum Val {
   Num(f32),
   List(Vec<Val>),
   Builtin(bool, fn(Vec<Val>, &mut State)),
-  Lambda(bool, VarRef, Vec<Val>),
+  Lambda(bool, ScopeRef, Vec<Val>),
   Message(String),
 }
 
@@ -48,6 +48,30 @@ impl Val {
       },
       Val::Builtin(_, _) => true,
       _ => false,
+    }
+  }
+
+  pub(crate) fn memory_usage(&self) -> usize {
+    match self {
+      Val::Sym(sym) => sym.len(),
+      Val::String(string) => string.len(),
+      Val::Num(_) => 4,
+      Val::List(list) => {
+        let mut size = 4;
+        for val in list {
+          size += val.memory_usage();
+        }
+        size
+      },
+      Val::Builtin(_, _) => 4,
+      Val::Lambda(_, _, list) => {
+        let mut size = 4;
+        for val in list {
+          size += val.memory_usage();
+        }
+        size
+      },
+      Val::Message(message) => message.len(),
     }
   }
 }

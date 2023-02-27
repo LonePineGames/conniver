@@ -1,13 +1,23 @@
 use std::{fmt::{Formatter, Debug}};
 
-use crate::{val::{Val, p_all}, builtins::{get_builtins, do_cb}, variables::{VarSpace, VarRef}};
+use crate::{val::{Val, p_all}, builtins::{get_builtins, do_cb}, variables::{VarSpace, ScopeRef}};
 
 #[derive(Clone)]
 pub struct Stackframe {
-  pub vars: VarRef,
+  pub vars: ScopeRef,
   pub init: Vec<Val>,
   pub accum: Vec<Val>,
   pub pc: usize,
+}
+
+impl Stackframe {
+  fn memory_usage(&self) -> usize {
+    let mut size = 4;
+    for val in &self.accum {
+      size += val.memory_usage();
+    }
+    size
+  }
 }
 
 impl Debug for Stackframe {
@@ -62,7 +72,7 @@ impl State {
     }
   }
 
-  pub fn get_var_ref(&self) -> VarRef {
+  pub fn get_var_ref(&self) -> ScopeRef {
     if self.stack.is_empty() {
       self.vars.root()
     } else {
@@ -101,7 +111,15 @@ impl State {
 
   pub fn return_stackframe(&mut self, val: Val) {
     if !self.stack.is_empty() {
+      let scope = self.get_var_ref();
       self.stack.pop();
+
+      if scope != self.get_var_ref() {
+        // try to clean up scope
+        if !self.vars.val_has_ancestor(scope, &val) {
+          self.vars.remove(scope);
+        }
+      }
     }
     if self.stack.is_empty() {
       self.result = val;
@@ -473,6 +491,10 @@ impl State {
       _ => panic!("No message to return to"),
     }
     self.return_stackframe(val);
+  }
+
+  pub fn memory_usage(&self) -> usize {
+    self.vars.memory_usage() + self.stack.iter().map(|frame| frame.memory_usage()).sum::<usize>()
   }
 }
 
