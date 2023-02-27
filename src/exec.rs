@@ -1,6 +1,6 @@
 use std::{fmt::{Formatter, Debug}};
 
-use crate::{val::{Val, p_all}, builtins::get_builtins, variables::{VarSpace, VarRef}};
+use crate::{val::{Val, p_all}, builtins::{get_builtins, do_cb}, variables::{VarSpace, VarRef}};
 
 #[derive(Clone)]
 pub struct Stackframe {
@@ -41,9 +41,11 @@ impl State {
     let mut s = String::new();
     s.push_str(&format!("=== State ===\n"));
     s.push_str(&self.vars.describe());
-    s.push_str(&format!("{:?}\n", self.stack));
-    s.push_str(&format!("{:?}\n", self.back_stack));
-    s.push_str(&format!("Result: {:?}\n", self.result));
+    for (i, frame) in self.stack.iter().enumerate() {
+      s.push_str(&format!("Frame #{} [pc {}]\n", i, frame.pc));
+      s.push_str(&format!("  init: {:?}\n", Val::List(frame.init.clone())));
+      s.push_str(&format!("  accum: {:?}\n", Val::List(frame.accum.clone())));
+    }
     s
   }
 
@@ -317,11 +319,23 @@ impl State {
       return;
     }
 
+    // finish a do block early -- this implements tail call optimization
+    if frame.pc == frame.accum.len() - 1 && 
+        frame.accum.len() >= 2 {
+
+      if let Val::Builtin(_, my_do_cb) = frame.accum[0] {
+        if my_do_cb as usize == do_cb as usize {
+          if let Val::List(val) = frame.accum[frame.pc].clone() {
+            self.replace_stackframe(val);
+            return;
+          }
+        }
+      }
+    }
+
     if frame.pc >= 1 {
       if let Val::Builtin(true, _) = frame.accum[0] {
         self.call();
-        // let args = frame.accum[1..].to_vec();
-        // callback(args, self);
         return;
       } else if let Val::Lambda(true, _, _) = frame.accum[0] {
         self.call();

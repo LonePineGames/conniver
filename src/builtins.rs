@@ -282,7 +282,7 @@ fn cons_cb(args: Vec<Val>, state: &mut State) {
   }
 }
 
-fn do_cb(args: Vec<Val>, state: &mut State) {
+pub(crate) fn do_cb(args: Vec<Val>, state: &mut State) {
   if args.is_empty() {
     state.return_stackframe(Val::nil());
   } else {

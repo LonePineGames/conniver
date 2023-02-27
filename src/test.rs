@@ -239,7 +239,7 @@ fn test_message_loop() {
     println!("iteration {}", i);
     assert_eq!(s.message_peek(), None);
     s.run();
-    println!("{}", s.describe());
+    // println!("{}", s.describe());
     assert_eq!(s.message_peek(), Some(vec![p("print"), p("\"loop \""), p("((test 1 2 3) (test 4 5 6))")]));
     s.message_return(Val::nil());
     s.run();
@@ -250,6 +250,10 @@ fn test_message_loop() {
     assert_eq!(s.message_peek(), Some(vec![p("test"), p("4"), p("5"), p("6")]));
     s.message_return(p("8"));
     assert_eq!(s.message_peek(), None);
+
+    //check tail recursion
+    println!("{}", s.describe());
+    assert_eq!(s.stack.len(), 1);
   }
 }
 
