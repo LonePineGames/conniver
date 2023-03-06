@@ -32,9 +32,9 @@ impl VarSpace {
     ScopeRef(0)
   }
 
-  pub(crate) fn parent(&self, var_ref: ScopeRef) -> ScopeRef {
-    self.scopes[var_ref.0].parent
-  }
+  // pub(crate) fn parent(&self, var_ref: ScopeRef) -> ScopeRef {
+  //   self.scopes[var_ref.0].parent
+  // }
 
   pub fn new_child(&mut self, parent: ScopeRef) -> ScopeRef {
     if self.free_scopes.len() > 0 {
@@ -153,7 +153,6 @@ impl VarSpace {
       .map(|i| ScopeRef(i))
       .filter(|i| *i != scope && self.scope_has_ancestor(*i, scope))
       .collect::<Vec<_>>();
-    println!("Removing scopes: {:?} + {:?}", scope, to_remove);
     for i in to_remove {
       self.remove_inner(i);
     }
