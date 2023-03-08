@@ -1,5 +1,6 @@
 (print "Hello library")
 
+(define nil '())
 (define (zero? x) (= 0 x))
 (define (odd? x) (= (% x 2) 1))
 (define (even? x) (= (% x 2) 0))
