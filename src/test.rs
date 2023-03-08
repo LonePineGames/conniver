@@ -232,16 +232,11 @@ fn test_message_loop() {
   s.load_lib();
 
   s.message_add("test");
-  s.message_add("print");
   s.set_program(p("(loop (test 1 2 3) (test 4 5 6))"));
 
   for i in 0..10 {
     println!("iteration {}", i);
     assert_eq!(s.message_peek(), None);
-    s.run();
-    // println!("{}", s.describe());
-    assert_eq!(s.message_peek(), Some(vec![p("print"), p("\"loop \""), p("((test 1 2 3) (test 4 5 6))")]));
-    s.message_return(Val::nil());
     s.run();
     assert_eq!(s.message_peek(), Some(vec![p("test"), p("1"), p("2"), p("3")]));
     s.message_return(p("7"));

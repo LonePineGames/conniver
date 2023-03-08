@@ -6,7 +6,6 @@
 (define list (lambda x x))
 
 (define-syntax loop (lambda (eval-context body)
-  (print "loop " body)
   (eval-context (cons 'do body))
   (eval-context (cons 'loop body))
 ))
