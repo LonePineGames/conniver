@@ -6,18 +6,18 @@ pub fn read_object(object: &Val, mut f: impl FnMut(&str, &Val)) {
       for item in list {
         match item {
           Val::List(list) => {
-            if list.len() < 2 {
-              panic!("Invalid object property value");
+            if list.len() == 0 {
+              continue;
             }
             let key = match &list[0] {
               Val::Sym(key) => key,
               _ => panic!("Invalid object property key"),
             };
-            if list.len() > 2 {
-              f(key, &Val::List(list[1..].to_vec()));
-            } else {
-              f(key, &list[1]);
-            }
+            match list.len() {
+              1 => f(key, &Val::nil()),
+              2 => f(key, &list[1]),
+              _ => f(key, &Val::List(list[1..].to_vec())),
+            };
           },
           _ => panic!("Invalid object property"),
         }

@@ -259,7 +259,7 @@ fn test_message_loop() {
 
 #[test]
 fn test_read_object() {
-  let obj = p("((name test) (type item) (size 1 1) (health 100) (speed 0.1) (range 0) (power 0) (consumes 0) (outputs 0) (requirements 0) (buildtime 0) (description \"This is some complex object\"))");
+  let obj = p("((name test) (type item) (size 1 1) (health 100) (speed 0.1) (range 0) (power 0) (consumes 0) (outputs 0) (requirements 0) (buildtime 0) (very-cool) (description \"This is some complex object\"))");
 
   let mut props = 0;
   read_object(&obj, |key, val| {
@@ -287,6 +287,7 @@ fn test_read_object() {
       "outputs" => assert_eq!(val, &p("0")),
       "requirements" => assert_eq!(val, &p("0")),
       "buildtime" => assert_eq!(val, &p("0")),
+      "very-cool" => assert_eq!(val, &p("()")),
       "description" => {
         assert_eq!(val, &p("\"This is some complex object\""));
         assert_eq!(read_string(val), "This is some complex object");
@@ -294,7 +295,7 @@ fn test_read_object() {
       _ => panic!("Unknown key: {}", key),
     }
   });
-  assert_eq!(props, 12);
+  assert_eq!(props, 13);
 }
 
 #[test]
