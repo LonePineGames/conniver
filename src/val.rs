@@ -124,6 +124,12 @@ impl ToString for Val {
   }
 }
 
+impl Default for Val {
+  fn default() -> Self {
+    Val::nil()
+  }
+}
+
 impl Debug for Val {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     write!(f, "{}", self.to_string())
