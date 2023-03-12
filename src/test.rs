@@ -56,6 +56,9 @@ fn test_variables() {
   assert_eq!(eval_s(&p("(mutate 10)"), s), p("10"));
   assert_eq!(eval_s(&p("a"), s), p("a"));
   println!("{}", s.describe());
+
+  eval_s(&p("(define f (lambda (x) x))"), s);
+  assert_eq!(eval_s(&p("(f 10)"), s), p("10"));
 }
 
 #[test]
@@ -323,5 +326,37 @@ fn test_memory_management() {
   assert_eq!(s.stack.len(), 0);
   //assert_eq!(s.vars.memory_usage(), init_mem);
   assert_eq!(s.memory_usage(), init_mem + 182);
+}
+
+#[test]
+fn test_string() {
+  let mut state = State::new();
+  let s = &mut state;
+  s.load_lib();
+
+  assert_eq!(eval_s(&p("(string? \"\")"), s), p("t"));
+  assert_eq!(eval_s(&p("(string? \"a\")"), s), p("t"));
+  assert_eq!(eval_s(&p("(string? abc)"), s), p("()"));
+
+  assert_eq!(eval_s(&p("(string-length \"\")"), s), p("0"));
+  assert_eq!(eval_s(&p("(string-length \"a\")"), s), p("1"));
+  assert_eq!(eval_s(&p("(string-length \"abc\")"), s), p("3"));
+
+  assert_eq!(eval_s(&p("(string-cons \"\" \"\")"), s), p("\"\""));
+  assert_eq!(eval_s(&p("(string-cons \"a\" \"\")"), s), p("\"a\""));
+  assert_eq!(eval_s(&p("(string-cons \"\" \"a\")"), s), p("\"a\""));
+  assert_eq!(eval_s(&p("(string-cons \"a\" \"b\")"), s), p("\"ab\""));
+  assert_eq!(eval_s(&p("(string-cons \"a\" \"b\" \"c\")"), s), p("\"abc\""));
+  assert_eq!(eval_s(&p("(string-cons \"a\" \"b\" \"c\" \"d\")"), s), p("\"abcd\""));
+  
+  assert_eq!(eval_s(&p("(string-head \"\")"), s), p("\"\""));
+  assert_eq!(eval_s(&p("(string-head \"a\")"), s), p("\"a\""));
+  assert_eq!(eval_s(&p("(string-head \"ab\")"), s), p("\"a\""));
+  assert_eq!(eval_s(&p("(string-head \"abc\")"), s), p("\"a\""));
+
+  assert_eq!(eval_s(&p("(string-tail \"\")"), s), p("\"\""));
+  assert_eq!(eval_s(&p("(string-tail \"a\")"), s), p("\"\""));
+  assert_eq!(eval_s(&p("(string-tail \"ab\")"), s), p("\"b\""));
+  assert_eq!(eval_s(&p("(string-tail \"abc\")"), s), p("\"bc\""));
 }
 

@@ -138,9 +138,12 @@ impl Debug for Val {
 
 impl PartialEq for Val {
   fn eq(&self, other: &Self) -> bool {
+
     match (self, other) {
       (Val::Sym(sym1), Val::Sym(sym2)) => sym1 == sym2,
       (Val::String(string1), Val::String(string2)) => string1 == string2,
+      (Val::Sym(_), Val::String(_)) => false,
+      (Val::String(_), Val::Sym(_)) => false,
       (Val::Num(num1), Val::Num(num2)) => num1 == num2,
       (Val::List(list1), Val::List(list2)) => list1 == list2,
       (Val::Lambda(_, _, list1), Val::Lambda(_, _, list2)) => list1 == list2,
@@ -188,13 +191,20 @@ pub fn p_all(s: &str) -> Vec<Val> {
 
 fn value_to_val(value: Value) -> Val {
   match value {
-    Value::Symbol(Symbol(name)) => Val::Sym(name),
+    Value::Symbol(Symbol(name)) => {
+      //catch a bug in the parser
+      if name == "\"\"".to_owned() {
+        Val::String("".to_string())
+      } else {
+        Val::Sym(name)
+      }
+    },
     Value::String(string) => Val::String(string),
     Value::List(list) => Val::List(list.into_iter().map(value_to_val).collect()),
     Value::Int(int) => Val::Num(int as f32),
     Value::Float(float) => Val::Num(float),
     Value::True => Val::Sym("t".to_string()),
-    Value::False => Val::nil(),
+    Value::False => Val::Sym("f".to_string()),
     //Value::HashMap(hash_map) => SValue::List(SList { list: hash_map.into_iter().map(|(key, value)| SValue::List(SList { list: vec![value_to_svalue(key), value_to_svalue(value)] })).collect() }),
     //Value::NativeFunction(native_function) => SValue::Symbol(native_function.name.clone()),
     //Value::Lambda(lambda) => SValue::List(SList { list: vec![SValue::Symbol("lambda".to_string()), SValue::List(SList { list: lambda.args.into_iter().map(value_to_svalue).collect() }), value_to_svalue(lambda.body)] }),

@@ -40,6 +40,11 @@ pub fn get_builtins() -> HashMap<String, Val> {
   builtins.insert("format".to_string(), Val::Builtin(false, format_cb));
   builtins.insert("set-program".to_string(), Val::Builtin(false, set_program_cb));
 
+  builtins.insert("string-length".to_string(), Val::Builtin(false, string_length_cb));
+  builtins.insert("string-cons".to_string(), Val::Builtin(false, string_cons_cb));
+  builtins.insert("string-head".to_string(), Val::Builtin(false, string_head_cb));
+  builtins.insert("string-tail".to_string(), Val::Builtin(false, string_tail_cb));
+
   builtins
 }
 
@@ -742,5 +747,53 @@ fn eval_cb(args: Vec<Val>, state: &mut State) {
     let mut list = vec![Val::Sym("do".to_string())];
     list.extend(args);
     state.replace_stackframe(list);
+  }
+}
+
+fn string_length_cb(args: Vec<Val>, state: &mut State) {
+  if args.is_empty() {
+    state.return_stackframe(Val::Num(0.0));
+  } else if let Val::String(string) = &args[0] {
+    state.return_stackframe(Val::Num(string.len() as f32));
+  } else {
+    state.return_stackframe(Val::Num(0.0));
+  }
+}
+
+fn string_cons_cb(args: Vec<Val>, state: &mut State) {
+  let mut string = String::new();
+  for arg in args.iter() {
+    if let Val::String(string2) = arg {
+      string.push_str(string2);
+    }
+  }
+  state.return_stackframe(Val::String(string));
+}
+
+fn string_head_cb(args: Vec<Val>, state: &mut State) {
+  if args.is_empty() {
+    state.return_stackframe(Val::nil());
+  } else if let Val::String(string) = &args[0] {
+    if string.is_empty() {
+      state.return_stackframe(Val::String("".to_string()));
+    } else {
+      state.return_stackframe(Val::String(string[0..1].to_string()));
+    }
+  } else {
+    state.return_stackframe(Val::nil());
+  }
+}
+
+fn string_tail_cb(args: Vec<Val>, state: &mut State) {
+  if args.is_empty() {
+    state.return_stackframe(Val::nil());
+  } else if let Val::String(string) = &args[0] {
+    if string.is_empty() {
+      state.return_stackframe(Val::String("".to_string()));
+    } else {
+      state.return_stackframe(Val::String(string[1..].to_string()));
+    }
+  } else {
+    state.return_stackframe(Val::nil());
   }
 }
