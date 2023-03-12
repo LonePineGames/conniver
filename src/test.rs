@@ -342,21 +342,37 @@ fn test_string() {
   assert_eq!(eval_s(&p("(string-length \"a\")"), s), p("1"));
   assert_eq!(eval_s(&p("(string-length \"abc\")"), s), p("3"));
 
+  assert_eq!(eval_s(&p("(string-empty? \"\")"), s), p("t"));
+  assert_eq!(eval_s(&p("(string-empty? \"a\")"), s), p("()"));
+  assert_eq!(eval_s(&p("(not (string-empty? \"abc\"))"), s), p("t"));
+  assert_eq!(eval_s(&p("(not (string-empty? \"\"))"), s), p("()"));
+  assert_eq!(eval_s(&p("(string-empty? abc)"), s), p("()"));
+
   assert_eq!(eval_s(&p("(string-cons \"\" \"\")"), s), p("\"\""));
   assert_eq!(eval_s(&p("(string-cons \"a\" \"\")"), s), p("\"a\""));
   assert_eq!(eval_s(&p("(string-cons \"\" \"a\")"), s), p("\"a\""));
   assert_eq!(eval_s(&p("(string-cons \"a\" \"b\")"), s), p("\"ab\""));
   assert_eq!(eval_s(&p("(string-cons \"a\" \"b\" \"c\")"), s), p("\"abc\""));
   assert_eq!(eval_s(&p("(string-cons \"a\" \"b\" \"c\" \"d\")"), s), p("\"abcd\""));
+  assert_eq!(eval_s(&p("(string-cons abc def)"), s), p("\"abcdef\""));
   
   assert_eq!(eval_s(&p("(string-head \"\")"), s), p("\"\""));
   assert_eq!(eval_s(&p("(string-head \"a\")"), s), p("\"a\""));
   assert_eq!(eval_s(&p("(string-head \"ab\")"), s), p("\"a\""));
   assert_eq!(eval_s(&p("(string-head \"abc\")"), s), p("\"a\""));
+  assert_eq!(eval_s(&p("(string-head abc)"), s), p("\"a\""));
 
   assert_eq!(eval_s(&p("(string-tail \"\")"), s), p("\"\""));
   assert_eq!(eval_s(&p("(string-tail \"a\")"), s), p("\"\""));
   assert_eq!(eval_s(&p("(string-tail \"ab\")"), s), p("\"b\""));
   assert_eq!(eval_s(&p("(string-tail \"abc\")"), s), p("\"bc\""));
+  assert_eq!(eval_s(&p("(string-tail abc)"), s), p("\"bc\""));
+
+  eval_s(&p("(define term \"sociotechnical\")"), s);
+  assert_eq!(eval_s(&p("(= term \"sociotechnical\")"), s), p("t"));
+  assert_eq!(eval_s(&p("(= term \"sociotechnical \")"), s), p("()"));
+  assert_eq!(eval_s(&p("(string-head term)"), s), p("\"s\""));
+  assert_eq!(eval_s(&p("(string-tail term)"), s), p("\"ociotechnical\""));
+
 }
 

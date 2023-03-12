@@ -1,7 +1,7 @@
 
 use std::collections::HashMap;
 
-use crate::{val::{Val, p_all}, exec::State};
+use crate::{val::{Val, p_all}, exec::State, object::read_string};
 
 pub type Callback = fn(args: Vec<Val>, &mut State);
 
@@ -753,47 +753,41 @@ fn eval_cb(args: Vec<Val>, state: &mut State) {
 fn string_length_cb(args: Vec<Val>, state: &mut State) {
   if args.is_empty() {
     state.return_stackframe(Val::Num(0.0));
-  } else if let Val::String(string) = &args[0] {
-    state.return_stackframe(Val::Num(string.len() as f32));
   } else {
-    state.return_stackframe(Val::Num(0.0));
+    state.return_stackframe(Val::Num(read_string(&args[0]).len() as f32));
   }
 }
 
 fn string_cons_cb(args: Vec<Val>, state: &mut State) {
   let mut string = String::new();
   for arg in args.iter() {
-    if let Val::String(string2) = arg {
-      string.push_str(string2);
-    }
+    string.push_str(&read_string(arg));
   }
   state.return_stackframe(Val::String(string));
 }
 
 fn string_head_cb(args: Vec<Val>, state: &mut State) {
   if args.is_empty() {
-    state.return_stackframe(Val::nil());
-  } else if let Val::String(string) = &args[0] {
+    state.return_stackframe(Val::String("".to_string()));
+  } else {
+    let string = read_string(&args[0]);
     if string.is_empty() {
       state.return_stackframe(Val::String("".to_string()));
     } else {
       state.return_stackframe(Val::String(string[0..1].to_string()));
     }
-  } else {
-    state.return_stackframe(Val::nil());
   }
 }
 
 fn string_tail_cb(args: Vec<Val>, state: &mut State) {
   if args.is_empty() {
-    state.return_stackframe(Val::nil());
-  } else if let Val::String(string) = &args[0] {
+    state.return_stackframe(Val::String("".to_string()));
+  } else {
+    let string = read_string(&args[0]);
     if string.is_empty() {
       state.return_stackframe(Val::String("".to_string()));
     } else {
       state.return_stackframe(Val::String(string[1..].to_string()));
     }
-  } else {
-    state.return_stackframe(Val::nil());
   }
 }

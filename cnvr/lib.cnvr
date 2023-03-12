@@ -5,6 +5,7 @@
 (define (odd? x) (= (% x 2) 1))
 (define (even? x) (= (% x 2) 0))
 (define list (lambda x x))
+(define (string-empty? x) (= (string-length x) 0))
 
 (define-syntax loop (lambda (eval-context body)
   (eval-context (cons 'do body))
